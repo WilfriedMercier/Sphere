@@ -1,4 +1,4 @@
 font: fixed
 iconPath: /home/wilfried/Sphere/icons
 path: /home/wilfried/Documents
-projects: ['settings.yaml', 'settings.yaml']
+projects: ['/home/wilfried/Documents/Doc_administratifs/These_IRAP/Vulgarisation/Sphere/venus/venus.yaml']
