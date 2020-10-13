@@ -8,10 +8,12 @@ Created on Sat Oct  3 18:50:47 2020
 Utility class to create new tabs.
 """
 
+import yaml
+import os.path                           as     opath
 import numpy                             as     np 
 import tkinter                           as     tk
-from   tkinter.filedialog                import askopenfilenames
-from   matplotlib.figure                 import Figure, Axes
+from   tkinter.filedialog                import askopenfilename
+from   matplotlib.figure                 import Figure
 from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class Tab(tk.Frame):
@@ -69,22 +71,22 @@ class Tab(tk.Frame):
         self.notebook.add(self, text='+')
         
     
-    #######################################
-    #               Methods               #
-    #######################################
+    ##########################################
+    #               IO methods               #
+    ##########################################
         
     def askLoad(self, *args, **kwargs):
         '''Asking which file to open.'''
         
         try:
             # Load YAML file
-            self.fnames = list(askopenfilenames(initialdir=self.main.loadPath, title='Select YAML connfiguration file...', filetypes=(('YAML files', '*.yaml'), ('All files', '*.*'))))
+            self.fname = askopenfilename(initialdir=self.main.loadPath, title='Select YAML connfiguration file...', filetypes=(('YAML files', '*.yaml'), ('All files', '*.*')))
         except:
             print('Failed to open file...')
             return
         
-        if len(self.fnames) > 0:
-            self.load(self.fnames)
+        if self.fnames != '':
+            self.load(self.fname)
         return
         
     def load(self, file, *args, **kwargs):
@@ -97,22 +99,83 @@ class Tab(tk.Frame):
                 project yaml configuration file to load
         '''
         
-        # Do not create a new tab if data is already loaded
-        if not self.loaded:
-        
-            # Create new tab
-            self.main.addTab(*args, **kwargs)
-            self.loaded = True
-        
-            # Destroy default layout and load matplotlib frame and canvas
-            self.main.notebook.tab(self.main.notebook.select(), text=file.split('.yaml')[0])
-            self.loadButton.destroy()
-            self.label.destroy()
-            self.bindFrame.destroy()
-            self.main.loadButton.configure(bg=self.main.color)
-            self.makeGraph()
+        try:
+            # First load YAML parameters
+            self.yaml       = file
+            self.loadYAML(file)
+            
+            # Do not create a new tab if data is already loaded
+            if not self.loaded:
+            
+                # Create new tab
+                self.main.addTab(*args, **kwargs)
+                self.loaded = True
+            
+                # Destroy default layout and load matplotlib frame and canvas
+                self.main.notebook.tab(self.main.notebook.select(), text=file.split('.yaml')[0])
+                self.loadButton.destroy()
+                self.label.destroy()
+                self.bindFrame.destroy()
+                self.main.loadButton.configure(bg=self.main.color)
+                self.makeGraph()
+        except:
+            pass
 
         return
+    
+    def loadYAML(self, file):
+        '''
+        Load parameters when a YAML file is selected.
+        
+        Parameters
+        ----------
+            file : str
+                project yaml configuration file to load
+        '''
+        
+        if not isinstance(file, str):
+            raise TypeError('yaml file name must be of type string.')
+        
+        # Load data parameters
+        with open(file, 'r') as f:
+            self.confParams         = yaml.load(f, Loader=yaml.Loader)
+            
+        # Perform some checks
+        for i in ['lat min', 'lat max', 'long min', 'long max', 'step']:
+            if i not in self.confParams:
+                self.confParams = {}
+                raise IOError('Data cannot be loaded because parameter %s is missing in the YAML file %s.' %(i, file))
+                
+        if self.confParams['lat min'] >= self.confParams['lat max']:
+            self.confParams = {}
+            raise ValueError('Minimum latitude (%s) >= Maximum latitude (%s).' %(self.confParams['lat min'], self.confParams['lat max']))
+
+        if self.confParams['long min'] >= self.confParams['long max']:
+            self.confParams = {}
+            raise ValueError('Minimum longitude (%s) >= Maximum longitude (%s).' %(self.confParams['long min'], self.confParams['long max']))
+            
+        if self.confParams['step'] <= 0:
+            self.confParams = {}
+            raise ValueError('Given latitude and longitude increment is < 0, which is not allowed.')
+            
+        if 'x0' not in self.confParams:
+            self.confParams['x0']   = 0
+        if 'y0' not in self.confParams:
+            self.confParams['y0']   = 0
+        if 'unit' not in self.confParams:
+            self.confParams['unit'] = '°'
+            
+        # Setup additional attributes
+        self.dataDir                = opath.dirname(file)
+        
+        
+            
+        return
+    
+    
+    ###################################################
+    #                  Graph methods                  #
+    ###################################################
     
     def makeGraph(self):
         '''Generate an empty matplotlib graph.'''
@@ -146,4 +209,7 @@ class Tab(tk.Frame):
         self.canvas.mpl_connect('figure_enter_event',  lambda *args, **kwargs: None)
         self.canvas.mpl_connect('figure_leave_event',  lambda *args, **kwargs: None)
         return
+    
+    def fillGraph(self):
+        '''Fill the graph with new data.'''
 
