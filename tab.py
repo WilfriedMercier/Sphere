@@ -9,12 +9,14 @@ Utility class to create new tabs.
 """
 
 import yaml
+import matplotlib.pyplot                 as     plt
 import os.path                           as     opath
 import numpy                             as     np 
 import tkinter                           as     tk
 from   tkinter.filedialog                import askopenfilename
 from   matplotlib.figure                 import Figure
 from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from   glob                              import glob
 
 class Tab(tk.Frame):
     def __init__(self, parent, main, notebook, properties={}):
@@ -40,6 +42,14 @@ class Tab(tk.Frame):
         self.main       = main
         self.notebook   = notebook
         self.properties = properties
+        
+        # Default properties before they are updated at loading
+        self.data       = None     # Array containing the RGB values
+        self.dataDir    = './'     # Directory where to find the YAML and the files
+        self.name       = 'None'   # Name of the tab
+        self.yaml       = ''       # YAML configuration file full path
+        self.longitude  = []       # List or array of longitudes corresponding to each pixel column in the RGB array
+        self.latitude   = []       # List or array of latitudes corresponding to each pixel column in the RGB array
         
         # Setup default properties if not given
         if 'bg' not in properties:
@@ -80,13 +90,30 @@ class Tab(tk.Frame):
         
         try:
             # Load YAML file
-            self.fname = askopenfilename(initialdir=self.main.loadPath, title='Select YAML connfiguration file...', filetypes=(('YAML files', '*.yaml'), ('All files', '*.*')))
+            fname = askopenfilename(initialdir=self.main.loadPath, title='Select YAML connfiguration file...', filetypes=(('YAML files', '*.yaml'), ('All files', '*.*')))
         except:
             print('Failed to open file...')
             return
         
-        if self.fnames != '':
-            self.load(self.fname)
+        if fname != () and fname != '':
+            self.load(fname)
+        else:
+            print('No file selected...')
+        return
+    
+    def getData(self, *args, **kwargs):
+        '''Get data from the correct image after YAML has been loaded.'''
+        
+        name     = opath.splitext(self.yaml)[0] + '_%d,%d' %(self.confParams['x0'], self.confParams['y0']) + '*'
+        file     = glob(name)
+        if len(file) > 0:
+            file = file[0]
+        else:
+            print('No file %s was found.' %name, self.yaml)
+            raise IOError
+            
+        # Get RGB data
+        self.data = plt.imread(file, format=opath.splitext(file)[-1])
         return
         
     def load(self, file, *args, **kwargs):
@@ -95,32 +122,34 @@ class Tab(tk.Frame):
         
         Parameters
         ----------
-            files : str
+            file : str
                 project yaml configuration file to load
         '''
         
-        try:
-            # First load YAML parameters
-            self.yaml       = file
-            self.loadYAML(file)
-            
-            # Do not create a new tab if data is already loaded
-            if not self.loaded:
-            
-                # Create new tab
-                self.main.addTab(*args, **kwargs)
-                self.loaded = True
-            
-                # Destroy default layout and load matplotlib frame and canvas
-                self.main.notebook.tab(self.main.notebook.select(), text=file.split('.yaml')[0])
-                self.loadButton.destroy()
-                self.label.destroy()
-                self.bindFrame.destroy()
-                self.main.loadButton.configure(bg=self.main.color)
-                self.makeGraph()
-        except:
-            pass
-
+        # First load YAML parameters
+        self.yaml       = file
+        self.loadYAML(file)
+        
+        # Load data
+        self.getData()
+        
+        # Update sliders
+        self.updateSliders()
+        
+        # Do not create a new tab if data is already loaded
+        if not self.loaded:
+        
+            # Create new tab
+            self.main.addTab(*args, **kwargs)
+            self.loaded = True
+        
+            # Destroy default layout and load matplotlib frame and canvas
+            self.main.notebook.tab(self.main.notebook.select(), text=self.name)
+            self.loadButton.destroy()
+            self.label.destroy()
+            self.bindFrame.destroy()
+            self.main.loadButton.configure(bg=self.main.color)
+            self.makeGraph(self.data)
         return
     
     def loadYAML(self, file):
@@ -157,19 +186,26 @@ class Tab(tk.Frame):
         if self.confParams['step'] <= 0:
             self.confParams = {}
             raise ValueError('Given latitude and longitude increment is < 0, which is not allowed.')
-            
+        
         if 'x0' not in self.confParams:
             self.confParams['x0']   = 0
+        else:
+            self.confParams['x0']   = int(self.confParams['x0'])
+            
         if 'y0' not in self.confParams:
             self.confParams['y0']   = 0
+        else:
+            self.confParams['y0']   = int(self.confParams['y0'])
+        
         if 'unit' not in self.confParams:
             self.confParams['unit'] = '°'
             
         # Setup additional attributes
-        self.dataDir                = opath.dirname(file)
+        self.dataDir, self.name     = opath.split(file)
+        self.name                   = opath.splitext(self.name)[0]
+        self.longitude              = np.arange(self.confParams['long min'], self.confParams['long max']+self.confParams['step'], self.confParams['step'])
+        self.latitude               = np.arange(self.confParams['lat min'],  self.confParams['lat max'] +self.confParams['step'], self.confParams['step'])
         
-        
-            
         return
     
     
@@ -177,7 +213,7 @@ class Tab(tk.Frame):
     #                  Graph methods                  #
     ###################################################
     
-    def makeGraph(self):
+    def makeGraph(self, data):
         '''Generate an empty matplotlib graph.'''
         
         self.figure   = Figure(figsize=(10, 10), constrained_layout=True, facecolor=self.properties['bg'])
@@ -192,7 +228,7 @@ class Tab(tk.Frame):
         self.ax.xaxis.set_ticks([])
         
         # Default empty image
-        self.im       = self.ax.imshow(np.zeros((2, 2)), cmap='Greys')
+        self.im       = self.ax.imshow(data, cmap='Greys')
         
         # Canvas holding figure
         self.figframe = tk.Frame( self, **self.properties)
@@ -210,6 +246,30 @@ class Tab(tk.Frame):
         self.canvas.mpl_connect('figure_leave_event',  lambda *args, **kwargs: None)
         return
     
-    def fillGraph(self):
+    def updateGraph(self):
         '''Fill the graph with new data.'''
 
+        return
+    
+    
+    ###############################################
+    #                Miscellaneous                #
+    ###############################################
+    
+    def updateSliders(self):
+        '''Update the latitude and longitude sliders limits and current value.'''
+        
+        self.main.latScale.configure( **{'from':self.latitude[0],  'to':self.latitude[-1],  'resolution':self.confParams['step']})
+        self.main.longScale.configure(**{'from':self.longitude[0], 'to':self.longitude[-1], 'resolution':self.confParams['step']})
+        
+        self.main.latScale.set( self.latitude[ self.confParams['y0']])
+        self.main.longScale.set(self.longitude[self.confParams['x0']])
+        return
+        
+        
+        
+        
+        
+        
+        
+        
