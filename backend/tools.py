@@ -6,9 +6,8 @@ from   threading            import Thread
 import os.path              as     opath
 import numpy                as     np
 import matplotlib.pyplot    as     plt
-import matplotlib
+import os
 import yaml
-import PIL
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -75,7 +74,7 @@ def writeYAML(name, coordsInit, limLatitude, limLongitude, step, unit='°'):
               'lat max' : float(limLatitude[1]),
               'long min': float(limLongitude[0]),
               'long max': float(limLongitude[1]),
-              'step'    : step
+              'step'    : step,
               'unit'    : unit
              }
 
@@ -92,48 +91,87 @@ def writeYAML(name, coordsInit, limLatitude, limLongitude, step, unit='°'):
 class Projection(Thread):
    '''A class to project some data with speed improvement from threading.'''
 
-   def __init__(self, outname, data, longitude, longIndices, latitude):
+   def __init__(self, data, dataLong, dataLat, longitude, longIndices, latitude, 
+                directory='out', name='out', size=(720, 720)):
       '''
       Initialisation
-      --------------
+      
+      Parameters
+      ----------
          data : numpy 2D array or numpy RGB array
             data corresponding to the given matrix image loaded
+         dataLat : numpy array
+             latitude corresponding to each pixel line in the image
+         dataLong : numpy array
+             longitude corresponding to each pixel column in the image
          latitude : list of float/int
             latitudes where to compute the projection
          longitude : list of float/int
-            full list of longitudes
+            full list of longitudes where to compute the projection
          longIndices : list of int
             indices int the longitude array/list where the thread must compute the projection
-         outname : str
-            name of the outputfile
+            
+      Optional parameters
+      -------------------
+         directory : str
+             name of the directory where to write the ouput files. Default is 'out'.
+         name : str
+            name of the outputfile. Default is 'out'.
+         size : (int, int)
+            size of the output images in x and y. Default is 720 pixels in both directions. 
       '''
-
+      
+      if not isinstance(name, str):
+          raise TypeError('Output name must be of type string only.')
+          
+      if not isinstance(size, (list, tuple)) or len(size) != 2:
+          raise TypeError('Size of images must be a tuple of length 2.')
+          
       Thread.__init__(self)
+      
+      # Data and its longitude and latitude
       self.data    = data
+      self.dataLong = dataLong
+      self.dataLat  = dataLat 
+      
+      # Longitude and latitude where to compute the projections
       self.indices = longIndices
       self.long    = longitude
       self.lat     = latitude
-      self.outname = outname
+      
+      # General output name used to save the figures
+      self.name    = name
+      self.size    = size 
 
    def run(self):
+      
+      # Make directory if it does not exist yet
+      shp = np.shape(self.data)[2]
+       
       for index in self.indices:
          for pos, lat in enumerate(self.lat):
 
-            print('Computing at (long, lat) = (%s, %s)' %(long, lat))
+            print('Computing at (long, lat) = (%s, %s)' %(self.long[index], lat))
             m         = Basemap(projection='aeqd', lat_0=lat, lon_0=self.long[index])
+            
+            # Compute the projected data for each of the 3 RGB arrays in the image
             projData  = []
-            for i in range(shp[2]):
-               projData.append(m.transform_scalar(data[:,:,i], longList, latList, 720, 720))
+            for i in range(shp):
+               projData.append(m.transform_scalar(self.data[:,:,i], self.dataLong, self.dataLat, int(self.size[0]), int(self.size[1])))
 
-#            plt.imsave(opath.join(outpath, outpath + '_%d,%d' %(long, lapos) + '.' + file.split('.')[-1])>
+            # Use the indices rather than the values to name the files
+            plt.imsave(opath.join(self.directory, self.name + '_%d,%d' %(self.long.index(self.long[index]), pos) + '.jpg'), \
+                       np.asarray(np.moveaxis(projData, 0, -1), dtype='uint8'), origin='lower', format='.jpg')
       return
 
-def projection(data, outName, limLatitude, limLongitude, step, numThreads, initPos=None):
+def projection(data, directory, name, limLatitude, limLongitude, step, numThreads, initPos=None):
    '''
    Perform the projections given the step, bounds and number of threads allowed to use.
 
    Parameters
    ----------
+       directory : str
+           name of the directory where to write the YAML and output files
       data : numpy 2D array or numpy RGB array
          data corresponding to the given matrix image loaded
       limLatitude : (int/float, int/float)
@@ -142,8 +180,8 @@ def projection(data, outName, limLatitude, limLongitude, step, numThreads, initP
          lower and upper values of the lnogitude corresponding to the image vertical borders
       numThreads : int
          number of threads to use for the computation
-      outName : str
-         output YAML file name
+      name : str
+         name used for the YAML and output files
       step : float/int
          step used when computed a new image with different coordinates. Units is assumed identical as latitude and longitude.
 
@@ -152,9 +190,15 @@ def projection(data, outName, limLatitude, limLongitude, step, numThreads, initP
       initPos : (int, int)
          longitude and latitude initial position written in the YAML file. Must be given in grid units. If None, first longitude lower bound and latitude upper bound are used.
    '''
+   
+   if not isinstance(name, str):
+       raise TypeError('Name should be of type string.')
+   
+   if not isinstance(directory, str):
+       raise TypeError('Directory should be of type string')
 
-   for name, data in zip(['limLatitude', 'limLongitude'], [limLatitude, limLongitude]):
-      checkPairs(data, name)
+   for dname, data in zip(['limLatitude', 'limLongitude'], [limLatitude, limLongitude]):
+      checkPairs(data, dname)
 
    if not isinstance(step, (int, float)):
       raise TypeError('step must either be a float or an int.')
@@ -164,8 +208,11 @@ def projection(data, outName, limLatitude, limLongitude, step, numThreads, initP
    if numThreads < 1:
       raise ValueError('Given number of threads is %s but accepted value must be >= 1.' %numThreads)
 
+   # Create directory if it does not exist
+   os.makedirs(directory, exist_ok=True)   
+
    # Shape of the image, longitude and latitude values for each pixel
-   shape         = np.shape(data)
+   shp           = np.shape(data)
    longList      = np.linspace(limLongitude[0], limLongitude[-1], shp[1])
    latList       = np.linspace(limLatitude[0],  limLongitude[-1], shp[0])
 
@@ -178,28 +225,26 @@ def projection(data, outName, limLatitude, limLongitude, step, numThreads, initP
    if initPos is None:
       initPos    = [0, lenLat]
 
-   # Dictionnary of projections: keys are labelled with the following convention 'longPos,latPos'
-   allProj       = {}
-
    # Setup number of threads
    numThreads    = 8
    if numThreads > lenLong+1:
       numThreads = lenLong+1
 
    # Write YAML configuration file
-   writeYAML(outname, initPos, (allLat[0], allLat[-1]), (allLong[0], allLong[-1]), step)
+   writeYAML(opath.join(directory, name), initPos, (allLat[0], allLat[-1]), (allLong[0], allLong[-1]), step)
 
    # We split the array into subarrays so that each thread is fed with independent data
    threads       = []
    long          = np.array_split(np.indices(allLong.shape)[0], numThreads)
 
+   # Launch the run method for each thread to improve speed 
    print('Setting up the projection dictionnary...')
    for i in range(numThreads):
-      threads.append(dictProj(long[i], allLat))
+      threads.append(Projection(data, longList, latList, allLong, long[i], allLat, 
+                                directory=directory, name=name))
       threads[i].start()
 
+    # Join threads once job is done
    for i in range(numThreads):
       threads[i].join()
-      dic     = threads[i].dict
-      allProj = {**allProj, **dic}
       print('Thread %d done.' %i)
