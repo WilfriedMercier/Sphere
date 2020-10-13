@@ -91,7 +91,11 @@ class Validate(tk.Toplevel):
     def accept(self, *args, **kwargs):
         '''Actions taken when the button accept is triggered.'''
         
-        self.acceptFunction(*args, **kwargs)
+        try:
+            self.acceptFunction(*args, **kwargs)
+        except:
+            pass
+        
         self.grab_release()
         self.destroy()
         return True
@@ -99,7 +103,11 @@ class Validate(tk.Toplevel):
     def cancel(self, *args, **kwargs):
         '''Actions taken when the button cancel is triggered.'''
         
-        self.cancelFunction(*args, **kwargs)
+        try:
+            self.cancelFunction(*args, **kwargs)
+        except:
+            pass
+        
         self.grab_release()
         self.destroy()
         return True
