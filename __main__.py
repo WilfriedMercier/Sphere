@@ -205,7 +205,14 @@ class mainApplication:
             self.tabs[idd].load(f)
             self.notebook.select(self.notebook.tabs()[-1])
         return
-        
+    
+
+    ##################################################
+    #              Sliders interactions              #
+    ##################################################
+    
+    def updateLatitude(self, value, *args, **kwargs):
+        return
     
 class runMainloop(Thread):
     '''Class inheriting from threading.Thread. Defined this way to ensure that SIGINT signal from the shell can be caught despite the mainloop.'''
