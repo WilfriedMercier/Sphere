@@ -76,6 +76,8 @@ class mainApplication:
                               acceptFunction=lambda *args, **kwargs: self.loadProjects(self.projects))
             
             self.parent.lift()
+            window.overrideredirect(True)
+            window.focus_force()
             window.grab_set()
             window.geometry('+%d+%d' %( self.parent.winfo_screenwidth()//2 - 5*window.winfo_reqwidth()//4, self.parent.winfo_screenheight()//2 - window.winfo_reqheight()//4))
             window.state('normal')
@@ -117,15 +119,20 @@ class mainApplication:
         self.delButton   = tk.Button(self.topframe, image=self.iconDict['DELETE'], 
                                      bd=0, bg=self.color, highlightbackground=self.color, relief=tk.FLAT, activebackground=self.color)
         
-        self.scaleframe  = tk.Frame( self.topframe, bg=self.color, bd=0, highlightthickness=0)
+        self.scaleframe  = tk.Frame( self.topframe,   bg=self.color, bd=0, highlightthickness=0)
+        self.latframe    = tk.Frame( self.scaleframe, bg=self.color, bd=0, highlightthickness=0)
+        self.longframe   = tk.Frame( self.scaleframe, bg=self.color, bd=0, highlightthickness=0)
         
-        self.latScale    = tk.Scale( self.scaleframe, length=200, width=12, orient='horizontal', from_=-90, to=90,
-                                     cursor='hand1', label='Latitude',
+        self.latLabel    = tk.Label( self.latframe,  text='Latitude',  bg=self.color)
+        self.longLabel   = tk.Label( self.longframe, text='Longitude', bg=self.color)
+        
+        self.latScale    = tk.Scale( self.latframe, length=200, width=12, orient='horizontal', from_=-90, to=90,
+                                     cursor='hand1', showvalue=False,
                                      bg=self.color, bd=1, highlightthickness=1, highlightbackground=self.color, troughcolor='lavender', activebackground='black', font=('fixed', 11),
                                      command=lambda value: self.updateScale('latitude', value))
         
-        self.longScale   = tk.Scale( self.scaleframe, length=200, width=12, orient='horizontal', from_=-180, to=180,
-                                     cursor='hand1', label='Longitude',
+        self.longScale   = tk.Scale( self.longframe, length=200, width=12, orient='horizontal', from_=-180, to=180,
+                                     cursor='hand1', showvalue=False,
                                      bg=self.color, bd=1, highlightthickness=1, highlightbackground=self.color, troughcolor='lavender', activebackground='black', font=('fixed', 11),
                                      command=lambda value: self.updateScale('longitude', value))
         
@@ -147,7 +154,7 @@ class mainApplication:
         
         self.loadButton.bind('<Enter>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='black')    if not self.tabs[self.notebook.select()].loaded else None)
         self.loadButton.bind('<Leave>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='lavender') if not self.tabs[self.notebook.select()].loaded else None)
-        self.loadButton.bind('<Button-1>', lambda *args, **kwargs: self.tabs[self.notebook.select()].load())
+        self.loadButton.bind('<Button-1>', lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
         
         
         self.delButton.bind( '<Enter>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='red',   background=self.color))
@@ -159,13 +166,25 @@ class mainApplication:
         self.longScale.bind( '<Enter>',    lambda *args, **kwargs:self.longScale.configure(highlightbackground='RoyalBlue2'))
         self.longScale.bind( '<Leave>',    lambda *args, **kwargs:self.longScale.configure(highlightbackground=self.color))
         
-        # Drawing frames
+        self.notebook.bind(  '<<NotebookTabChanged>>', lambda event: self.tabs[event.widget.select()].updateSliders())
+                  
+                  
+        ##########################################################
+        #                     Drawing frames                     #
+        ##########################################################
+                  
         self.loadButton.pack(side=tk.LEFT, pady=10, padx=10)
         self.delButton.pack( side=tk.LEFT, pady=10)
         self.topframe.pack(fill='x')
         
-        self.latScale.pack(  side=tk.LEFT,  pady=10, padx=10)
-        self.longScale.pack( side=tk.LEFT,  pady=10, padx=10)
+        self.latLabel.grid(  row=0, stick=tk.W)
+        self.longLabel.grid( row=0, stick=tk.W)
+        
+        self.latScale.grid(  row=1)
+        self.longScale.grid( row=1)
+        
+        self.latframe.pack(  side=tk.LEFT,  padx=10)
+        self.longframe.pack( side=tk.LEFT,  padx=10)
         self.scaleframe.pack(side=tk.RIGHT, padx=10, fill='x', expand=True)
         
         self.notebook.pack(fill='both', expand=True)
@@ -221,16 +240,17 @@ class mainApplication:
         
         idd = self.notebook.select()
         
-        if which == 'longitude':
-            self.tabs[idd].updateGraph(longitude=value, latitude=self.latScale.get())
-        elif which == 'latitude':
-            self.tabs[idd].updateGraph(latitude=value, longitude=self.longScale.get())
-            
-        # Because it is a callback called at the very end of the load data process, we update back to normal the last tab here to avoid doing it before the scale values are updated
-        if self.notebook.tab(self.notebook.tabs()[-1])['state'] != 'normal':
-            self.notebook.tab(self.notebook.tabs()[-1], state='normal')
-            
+        if self.tabs[idd].loaded:
+            if which == 'longitude':
+                self.tabs[idd].updateGraph(longitude=value, latitude=self.latScale.get())
+            elif which == 'latitude':
+                self.tabs[idd].updateGraph(latitude=value, longitude=self.longScale.get())
+                
+            # Because it is a callback called at the very end of the load data process, we update back to normal the last tab here to avoid doing it before the scale values are updated
+            if self.notebook.tab(self.notebook.tabs()[-1])['state'] != 'normal':
+                self.notebook.tab(self.notebook.tabs()[-1], state='normal')
         return
+    
     
     
 class runMainloop(Thread):

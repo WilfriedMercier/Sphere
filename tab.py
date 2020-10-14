@@ -51,6 +51,9 @@ class Tab(tk.Frame):
         self.longitude  = []       # List or array of longitudes corresponding to each pixel column in the RGB array
         self.latitude   = []       # List or array of latitudes corresponding to each pixel column in the RGB array
         
+        # Figure interaction properties
+        self.clicked    = False
+        
         # Setup default properties if not given
         if 'bg' not in properties:
             self.properties['bg'] = 'lavender'
@@ -120,6 +123,12 @@ class Tab(tk.Frame):
             
         # Get RGB data
         self.data = plt.imread(file, format=opath.splitext(file)[-1])
+        
+        # Steps in x and y used to update image when moving figure with mouse
+        shp        = np.shape(self.data)
+        self.xstep = (shp[1]-1)//self.lenLong
+        self.ystep = (shp[0]-1)//self.lenLat
+        
         return file
         
     def load(self, file, *args, **kwargs):
@@ -210,7 +219,8 @@ class Tab(tk.Frame):
         self.name                   = opath.splitext(self.name)[0]
         self.longitude              = np.arange(self.confParams['long min'], self.confParams['long max']+self.confParams['step'], self.confParams['step'])
         self.latitude               = np.arange(self.confParams['lat min'],  self.confParams['lat max'] +self.confParams['step'], self.confParams['step'])
-        
+        self.lenLong                = len(self.longitude) 
+        self.lenLat                 = len(self.latitude)
         return
     
     
@@ -245,10 +255,73 @@ class Tab(tk.Frame):
         self.figframe.pack(expand=True)
         
         # Linking to events
-        self.canvas.mpl_connect('button_press_event',  lambda *args, **kwargs: None)
-        self.canvas.mpl_connect('motion_notify_event', lambda *args, **kwargs: None)
-        self.canvas.mpl_connect('figure_enter_event',  lambda *args, **kwargs: None)
-        self.canvas.mpl_connect('figure_leave_event',  lambda *args, **kwargs: None)
+        self.canvas.mpl_connect('button_press_event',   lambda *args, **kwargs: self.onClick(  *args, **kwargs))
+        self.canvas.mpl_connect('button_release_event', lambda *args, **kwargs: self.outClick( *args, **kwargs))
+        self.canvas.mpl_connect('motion_notify_event',  lambda *args, **kwargs: self.onMove(   *args, **kwargs))
+        self.canvas.mpl_connect('figure_enter_event',   lambda *args, **kwargs: self.onFigure( *args, **kwargs))
+        self.canvas.mpl_connect('figure_leave_event',   lambda *args, **kwargs: self.outFigure(*args, **kwargs))
+        return
+    
+    def onFigure(self, *args, **kwargs):
+        '''Actions taken when cursor enters figure.'''
+        
+        self.main.parent.config(cursor='hand1')
+        return
+    
+    def outFigure(self, *args, **kwargs):
+        '''Actions taken when cursor leaves figure.'''
+        
+        self.main.parent.config(cursor='arrow')
+        return
+    
+    def onClick(self, event, *args, **kwargs):
+        '''Actions taken when mouse button is pressed on figure.'''
+        
+        self.clicked  = True
+        self.clickPos = [event.x, event.y]
+        return
+    
+    def outClick(self, *args, **kwargs):
+        '''Actions taken when mouse button is released on figure.'''
+        
+        self.clicked  = False
+        self.clickPos = []
+        return
+    
+    def onMove(self, event, *args, **kwargs):
+        '''Actions taken when mouse is moved on figure.'''
+        
+        if self.clicked:
+            
+            # Load new image with different longitude if condition is met
+            if abs(self.clickPos[0] - event.x) >= self.xstep:
+                
+                sign                       = (self.clickPos[0] - event.x)//abs(self.clickPos[0] - event.x)
+                
+                if self.confParams['x0'] == self.lenLong-1 and sign>0:
+                    self.confParams['x0']  = 0
+                elif self.confParams['x0'] == 0 and sign<0:
+                    self.confParams['x0']  = self.lenLong-1
+                else:
+                    self.confParams['x0'] += sign
+                    
+                self.clickPos[0]       = event.x
+                
+            # Load new image with different latitude if condition is met
+            if abs(self.clickPos[1] - event.y) >= self.ystep:
+               
+                sign                       = (self.clickPos[1] - event.y)//abs(self.clickPos[1] - event.y)
+                
+                if self.confParams['y0'] == self.lenLat-1 and sign>0:
+                    self.confParams['y0']  = 0
+                elif self.confParams['y0'] == 0 and sign<0:
+                    self.confParams['y0']  = self.lenLat-1
+                else:
+                    self.confParams['y0'] += sign
+                    
+                self.clickPos[1]           = event.y
+                
+            self.updateSliders()
         return
     
     def updateGraph(self, latitude=None, longitude=None):
@@ -283,6 +356,10 @@ class Tab(tk.Frame):
         self.confParams['y0'] = y0
         self.confParams['x0'] = x0
         
+        # Update slider labels
+        self.main.longLabel.configure(text='Latitude: %s°' %self.longitude[x0])
+        self.main.latLabel.configure (text='Longitude: %s°' %self.latitude[y0])
+        
         self.getData()
         self.im.set_data(self.data)
         self.canvas.draw()
@@ -296,11 +373,29 @@ class Tab(tk.Frame):
     def updateSliders(self):
         '''Update the latitude and longitude sliders limits and current value.'''
         
-        self.main.latScale.configure( **{'from':self.latitude[0],  'to':self.latitude[-1],  'resolution':self.confParams['step']})
-        self.main.longScale.configure(**{'from':self.longitude[0], 'to':self.longitude[-1], 'resolution':self.confParams['step']})
-        
-        self.main.latScale.set( self.latitude[ self.confParams['y0']])
-        self.main.longScale.set(self.longitude[self.confParams['x0']])
+        # If data has been loaded, we activate the sliders and update their values
+        if self.loaded:
+            self.main.latScale.configure( state='normal', cursor='hand1', troughcolor='lavender')
+            self.main.longScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
+            
+            self.main.latScale.bind(  '<Enter>',    lambda *args, **kwargs:self.main.latScale.configure(highlightbackground='RoyalBlue2'))
+            self.main.latScale.bind(  '<Leave>',    lambda *args, **kwargs:self.main.latScale.configure(highlightbackground=self.main.color))
+            self.main.longScale.bind( '<Enter>',    lambda *args, **kwargs:self.main.longScale.configure(highlightbackground='RoyalBlue2'))
+            self.main.longScale.bind( '<Leave>',    lambda *args, **kwargs:self.main.longScale.configure(highlightbackground=self.main.color))
+            
+            self.main.latScale.configure( **{'from':self.latitude[0],  'to':self.latitude[-1],  'resolution':self.confParams['step']})
+            self.main.longScale.configure(**{'from':self.longitude[0], 'to':self.longitude[-1], 'resolution':self.confParams['step']})
+            
+            self.main.latScale.set( self.latitude[ self.confParams['y0']])
+            self.main.longScale.set(self.longitude[self.confParams['x0']])
+        else:
+            self.main.latScale.configure( state='disabled', cursor='arrow', troughcolor=self.main.color, sliderrelief=tk.FLAT)
+            self.main.longScale.configure(state='disabled', cursor='arrow', troughcolor=self.main.color, sliderrelief=tk.FLAT)
+            
+            self.main.latScale.unbind( '<Enter>')
+            self.main.latScale.unbind( '<Leave>')
+            self.main.longScale.unbind('<Enter>')
+            self.main.longScale.unbind('<Leave>')
         return
         
         
