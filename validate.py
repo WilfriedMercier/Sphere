@@ -73,6 +73,10 @@ class Validate(tk.Toplevel):
         self.cFrame = tk.Frame(      self, bg='gray94', bd=0, highlightbackground='gray94', highlightthickness=2)
         self.check  = tk.Checkbutton(self.cFrame, text=' Do not ask again', bg='gray94', bd=0, highlightthickness=0, activebackground='gray84')
         
+        # Binding
+        self.bind('<Return>', lambda *args, **kwargs: self.accept(*args, **kwargs))
+        self.bind('<Escape>', lambda *args, **kwargs: self.cancel(*args, **kwargs))
+        
         # Griding things up
         self.textl.grid(row=0)
         self.textm.grid(row=1, sticky=tk.W)
