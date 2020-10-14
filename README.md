@@ -35,6 +35,6 @@ Obviously python3, one of the latest versions would be preferable. Tkinter and t
 - glob
 - __mpl_toolkits.basemap__ (this is the backbone of the projection part of the code, though it is not mandatory for manipulating images)
 
-The code + icons are actually quite light weight. Most of the size comes from the example, which for the moment is mandatory if you want to try this software, but will not in future versions. So hopefully, the example will be moved somewhere else and this project will be much less heavier than it is now.
+The code + icons are actually quite light weight. Most of the size comes from the example, which for the moment is mandatory if you want to try this software, but will not in future versions. So hopefully, the example will be moved somewhere else and this project will be much less heavy than it is now.
 
 __This software has only been tested on an Ubuntu 20.04.1 machine.__
