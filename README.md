@@ -6,9 +6,9 @@ In the end, both projection and image manipulation will be done through the same
 
 ## Why azimuthal equidistant projection ?
 
-Because this is the type of projection required for a project at IRAP aimed at projecting among other things planetray surfaces into a semi opaque sphere. Most images of planetray surfaces are usually found as rectangular images and therefore need to be projected into azimuthal equidistant projection so that the system optics can reconstruct the spherical shape.
+Because this is the type of projection required for a project at IRAP aimed at projecting among other things planetary surfaces into a semi opaque sphere. Most images of planetray surfaces are usually found as rectangular images and therefore need to be projected into azimuthal equidistant projection so that the system optics can reconstruct the spherical shape.
 
-## What it can do for now ?
+## What can it do for now ?
 
 Not much... Here is a list of things it does and should (shall ?) do in the future
 
