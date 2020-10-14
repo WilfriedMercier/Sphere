@@ -121,11 +121,13 @@ class mainApplication:
         
         self.latScale    = tk.Scale( self.scaleframe, length=200, width=12, orient='horizontal', from_=-90, to=90,
                                      cursor='hand1', label='Latitude',
-                                     bg=self.color, bd=1, highlightthickness=1, highlightbackground=self.color, troughcolor='lavender', activebackground='black', font=('fixed', 11))
+                                     bg=self.color, bd=1, highlightthickness=1, highlightbackground=self.color, troughcolor='lavender', activebackground='black', font=('fixed', 11),
+                                     command=lambda value: self.updateScale('latitude', value))
         
         self.longScale   = tk.Scale( self.scaleframe, length=200, width=12, orient='horizontal', from_=-180, to=180,
                                      cursor='hand1', label='Longitude',
-                                     bg=self.color, bd=1, highlightthickness=1, highlightbackground=self.color, troughcolor='lavender', activebackground='black', font=('fixed', 11))
+                                     bg=self.color, bd=1, highlightthickness=1, highlightbackground=self.color, troughcolor='lavender', activebackground='black', font=('fixed', 11),
+                                     command=lambda value: self.updateScale('longitude', value))
         
         
         ###########################################################
@@ -175,9 +177,12 @@ class mainApplication:
     
     def addTab(self, *args, **kwargs):
         '''Add a new tab in the tab list.'''
-        
+            
         tab                                 = myTab(self.notebook, self, self.notebook, properties={'bg':'lavender', 'bd':1, 'highlightthickness':0})
         self.tabs[self.notebook.tabs()[-1]] = tab
+        
+        if len(self.tabs) > 1:    
+            self.notebook.tab(self.notebook.tabs()[-1], state='disabled')
         return
     
     def delTab(self, *args, **kwargs):
@@ -206,13 +211,27 @@ class mainApplication:
             self.notebook.select(self.notebook.tabs()[-1])
         return
     
-
-    ##################################################
-    #              Sliders interactions              #
-    ##################################################
     
-    def updateLatitude(self, value, *args, **kwargs):
+    ########################################
+    #            Scale commands            #
+    ########################################
+    
+    def updateScale(self, which, value, *args, **kwargs):
+        '''Action taken when the latitude or longitude scales are updated.'''
+        
+        idd = self.notebook.select()
+        
+        if which == 'longitude':
+            self.tabs[idd].updateGraph(longitude=value, latitude=self.latScale.get())
+        elif which == 'latitude':
+            self.tabs[idd].updateGraph(latitude=value, longitude=self.longScale.get())
+            
+        # Because it is a callback called at the very end of the load data process, we update back to normal the last tab here to avoid doing it before the scale values are updated
+        if self.notebook.tab(self.notebook.tabs()[-1])['state'] != 'normal':
+            self.notebook.tab(self.notebook.tabs()[-1], state='normal')
+            
         return
+    
     
 class runMainloop(Thread):
     '''Class inheriting from threading.Thread. Defined this way to ensure that SIGINT signal from the shell can be caught despite the mainloop.'''

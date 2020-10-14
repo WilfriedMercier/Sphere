@@ -80,6 +80,12 @@ class Tab(tk.Frame):
         # Add to notebook
         self.notebook.add(self, text='+')
         
+    @property
+    def tabID(self, *args, **kwargs):
+        
+        values = list(self.main.tabs.values())
+        where  = values.index(self)
+        return self.main.tabs.keys()[where]
     
     ##########################################
     #               IO methods               #
@@ -114,7 +120,7 @@ class Tab(tk.Frame):
             
         # Get RGB data
         self.data = plt.imread(file, format=opath.splitext(file)[-1])
-        return
+        return file
         
     def load(self, file, *args, **kwargs):
         '''
@@ -130,18 +136,12 @@ class Tab(tk.Frame):
         self.yaml       = file
         self.loadYAML(file)
         
-        # Load data
-        self.getData()
-        
-        # Update sliders
-        self.updateSliders()
-        
         # Do not create a new tab if data is already loaded
         if not self.loaded:
         
             # Create new tab
-            self.main.addTab(*args, **kwargs)
             self.loaded = True
+            self.main.addTab(*args, **kwargs)
         
             # Destroy default layout and load matplotlib frame and canvas
             self.main.notebook.tab(self.main.notebook.select(), text=self.name)
@@ -149,7 +149,12 @@ class Tab(tk.Frame):
             self.label.destroy()
             self.bindFrame.destroy()
             self.main.loadButton.configure(bg=self.main.color)
-            self.makeGraph(self.data)
+            self.makeGraph()
+            
+        # Update sliders will also load data into the image through the callback command
+        self.updateSliders()
+        
+        # Enable back the last tab once the data has been correctly loaded in the right tab
         return
     
     def loadYAML(self, file):
@@ -213,7 +218,7 @@ class Tab(tk.Frame):
     #                  Graph methods                  #
     ###################################################
     
-    def makeGraph(self, data):
+    def makeGraph(self):
         '''Generate an empty matplotlib graph.'''
         
         self.figure   = Figure(figsize=(10, 10), constrained_layout=True, facecolor=self.properties['bg'])
@@ -228,7 +233,7 @@ class Tab(tk.Frame):
         self.ax.xaxis.set_ticks([])
         
         # Default empty image
-        self.im       = self.ax.imshow(data, cmap='Greys')
+        self.im       = self.ax.imshow([[0, 0], [0, 0]], cmap='Greys')
         
         # Canvas holding figure
         self.figframe = tk.Frame( self, **self.properties)
@@ -246,9 +251,41 @@ class Tab(tk.Frame):
         self.canvas.mpl_connect('figure_leave_event',  lambda *args, **kwargs: None)
         return
     
-    def updateGraph(self):
-        '''Fill the graph with new data.'''
-
+    def updateGraph(self, latitude=None, longitude=None):
+        '''
+        Fill the graph with new data.
+        
+        Parameters
+        ----------
+            latitude : int/float
+                latitude value used to load the new data
+            longitude : int/float
+                longitude value used to load the new data
+        '''
+        
+        if latitude is None and longitude is None:
+            return
+        
+        try:
+            y0 = np.where(self.latitude==float(latitude))[0][0]
+        except:
+            print('No image with latitude %s found. Using default value instead.' %latitude)
+            print('Acceptable values are %s' %self.latitude)
+            y0 = self.confParams['y0']
+            
+        try:
+            x0 = np.where(self.longitude==float(longitude))[0][0]
+        except:
+            print('No image found with longitude %s found. Using default value instead.' %longitude)
+            print('Acceptable values are %s' %self.longitude)
+            x0 = self.confParams['x0']
+        
+        self.confParams['y0'] = y0
+        self.confParams['x0'] = x0
+        
+        self.getData()
+        self.im.set_data(self.data)
+        self.canvas.draw()
         return
     
     
