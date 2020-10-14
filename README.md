@@ -4,6 +4,8 @@ Sphere is a small software aimed at easily projecting rectangular images of plan
 
 In the end, both projection and image manipulation will be done through the same interface.
 
+![Interface](/example/Example.png)
+
 ## Why azimuthal equidistant projection ?
 
 Because this is the type of projection required for a project at IRAP aimed at projecting among other things planetary surfaces into a semi opaque sphere. Most images of planetray surfaces are usually found as rectangular images and therefore need to be projected into azimuthal equidistant projection so that the system optics can reconstruct the spherical shape.
