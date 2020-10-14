@@ -16,12 +16,12 @@ Not much... Here is a list of things it does and should (shall ?) do in the futu
 - [x] Open projected images given the latitude and longitude
 - [x] Update the image when the latitude and/or longitude is/are changed
 - [x] Interact with the image in a simple way using the mouse (not very natural yet)
-- [] Interact in a natural and smooth way using the mouse
-- [] Have its own interface to perform the projection (for now it is hidden/unusuable in backend code)
-- [] Have a smoother interface for startup loading
-- [] Be able to save the current state of the application to easily load back later on
-- [] Detach/dupplicate the image into another window (with no/very few buttons and lebls) to have it fullscreen on another monitor for instance
-- [] Automatically rotate the image along the latitude or longitude at a given speed
+- [ ] Interact in a natural and smooth way using the mouse
+- [ ] Have its own interface to perform the projection (for now it is hidden/unusuable in backend code)
+- [ ] Have a smoother interface for startup loading
+- [ ] Be able to save the current state of the application to easily load back later on
+- [ ] Detach/dupplicate the image into another window (with no/very few buttons and lebls) to have it fullscreen on another monitor for instance
+- [ ] Automatically rotate the image along the latitude or longitude at a given speed
 
 So still quite a lot of work to do. But if you want to have a try, you can download the project and launch it. It should ask you whether you want to open a venus.yaml file which is located in the example directory. In practice, if you say yes, the data should be loaded and manipulated.
 
