@@ -67,10 +67,9 @@ class mainApplication:
             
             # Validation window
             window = Validate(self, self, parent, 
-                              text='You have old projects saved in the setting file. Do you want to open them:%s' %names,
-                              splitText=names, title='Open old projects ?',
-                              textProperties={'highlightthickness':0, 'bd':0, 'bg':self.color},
-                              textFrameProperties={'bg':self.color},
+                              mainText='You have old projects saved in the setting file. Select the files you want to open.',
+                              listNames=self.projects,
+                              textProperties={'highlightthickness':0, 'bd':0, 'bg':self.color, 'font':(self.font, 10)},
                               buttonsProperties={'bg':'floral white', 'activebackground':'linen'},
                               winProperties={'bg':self.color},
                               acceptFunction=lambda *args, **kwargs: self.loadProjects(self.projects))
