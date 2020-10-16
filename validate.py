@@ -2,15 +2,16 @@
 Author: Wilfried Mercier - IRAP
 """
 
-import tkinter as tk
+import tkinter as     tk
+from   tkinter import ttk
 
 class Validate(tk.Toplevel):
     '''A window with text, Yes/No buttons and a checkbox.'''
     
     def __init__(self, parent, main, root, 
                  acceptFunction=lambda *args, **kwargs: None, cancelFunction=lambda *args, **kwargs: None,
-                 text='', splitText='', textMcolor='red',
-                 title='', winProperties={}, textFrameProperties={}, textProperties={}, buttonsProperties={}):
+                 mainText='', listNames=[''],
+                 title='', winProperties={}, textProperties={}, buttonsProperties={}):
         
         '''
         Mandatory parameters
@@ -26,14 +27,10 @@ class Validate(tk.Toplevel):
         -------------------
             buttonsProperties : dict
                 properties of the buttons to pass to the __init__ method. Default is empty.
-            splitText : str
-                text used to split the global string between the left, middle and right parts. Default is empty string.
-            text : str
+            listNames : list of str
+                names to be shown. Default is [''].
+            mainText : str
                 text to show. Default is empty.
-            textFrameProperties : dict
-                properties of the frame containing the text widgets to pass to the __init__ method. Default is empty.
-            textMcolor : tkinter color name
-                color of the middle part of the string. Default is 'red'.
             textProperties : dict
                 properties of the text widgets to pass to the __init__ method. Default is empty.
             title : str
@@ -42,15 +39,39 @@ class Validate(tk.Toplevel):
                 window properties to pass to the __init__ method. Default is empty.
         '''
             
+        # Setup attributes
+        self.main           = main
+        self.parent         = parent
+        self.root           = root
         
-        self.main   = main
-        self.parent = parent
-        self.root   = root
+        self.winProperties  = winProperties
+        self.names          = listNames
+        
+        
+        ################################################
+        #              Default properties              #
+        ################################################
+        
+        if 'font' not in textProperties:
+            textProperties['font']   = (self.main.font, 10)
+            
+        if 'bg' not in self.winProperties:
+            self.winProperties['bg'] = self.main.bg
+        
+        
+        ###################################################
+        #              Custom treeview style              #
+        ###################################################
+            
+        self.style    = ttk.Style()
+        self.style.configure("mystyle.Treeview", highlightthickness=10, background=self.winProperties['bg'], foreground='red', font=textProperties['font']) # Modify the font of the body
+        self.style.map('mystyle.Treeview', background=[('selected', self.winProperties['bg'])], foreground=[('selected', 'red')])
+        self.style.configure("mystyle.Treeview.Heading", background=self.winProperties['bg'], font=tuple(list(textProperties['font']) + ['bold'])) # Modify the font of the headings
         
         self.acceptFunction = acceptFunction
         self.cancelFunction = cancelFunction
         
-        super().__init__(self.root, **winProperties)
+        super().__init__(self.root, **self.winProperties)
         self.wm_attributes('-type', 'utility')
         self.protocol("WM_DELETE_WINDOW", self.cancel)
         self.resizable(width=True, height=False)
@@ -59,15 +80,36 @@ class Validate(tk.Toplevel):
         self.transient()
         
         # Main text
-        textl, textm, textr = text.partition(splitText)
-        self.tframe = tk.Frame(self, **textFrameProperties)
-        self.textl  = tk.Label(self.tframe, text=textl, **textProperties)
-        self.textm  = tk.Label(self.tframe, text=textm, fg=textMcolor, font=(self.main.font, 10, 'bold'), **textProperties)
-        self.textr  = tk.Label(self.tframe, text=textr, **textProperties)
+        self.textl  = tk.Label(self, text=mainText, **textProperties)
         
-        # Buttons
-        self.yes  = tk.Button(self, text='Yes', underline=0, command=self.accept, **buttonsProperties)
-        self.no   = tk.Button(self, text='No',  underline=0, command=self.cancel, **buttonsProperties)
+        
+        ###############################################################################
+        #                      Treeview to show and select files                      #
+        ###############################################################################
+        
+        self.treeview = ttk.Treeview(self, style='mystyle.Treeview', height=len(self.names))
+        self.treeview.heading('#0', text='Files', anchor=tk.W)
+        
+        for pos, name in enumerate(self.names):
+            self.treeview.insert('', pos, text=name)
+            
+        # Bind event(s)
+        self.treeview.bind('<Button-1>', lambda *args, **kwargs: self.onClick(*args, **kwargs))
+        
+        # List of selected items
+        self.selection = []
+        
+        # Define tags
+        self.treeview.tag_configure('selected',   foreground='white', background='RoyalBlue2')
+        self.treeview.tag_configure('unselected', foreground='red',   background=winProperties['bg'])
+        
+
+        #####################################################
+        #                      Buttons                      #
+        #####################################################
+        
+        self.yes  = tk.Button(self, text='Ok',      underline=0, command=self.accept, **buttonsProperties)
+        self.no   = tk.Button(self, text='Cancel',  underline=0, command=self.cancel, **buttonsProperties)
         
         # Checkbox on the bottom
         self.cFrame = tk.Frame(      self, bg='gray94', bd=0, highlightbackground='gray94', highlightthickness=2)
@@ -78,16 +120,14 @@ class Validate(tk.Toplevel):
         self.bind('<Escape>', lambda *args, **kwargs: self.cancel(*args, **kwargs))
         
         # Griding things up
-        self.textl.grid(row=0)
-        self.textm.grid(row=1, sticky=tk.W)
-        self.textr.grid(row=2, sticky=tk.W)
-        self.tframe.grid(row=0, column=0, columnspan=2, padx=10, pady=10)
+        self.textl.grid(   row=0, pady=5, padx=5)
+        self.treeview.grid(row=1, columnspan=3, sticky=tk.E+tk.W, padx=5, pady=10)
         
-        self.yes.grid(row=1, column=0, padx=10, pady=10, sticky=tk.E)
-        self.no.grid( row=1, column=1, padx=10, pady=10, sticky=tk.W)
+        self.yes.grid(row=2, column=1, padx=10, pady=5, sticky=tk.E)
+        self.no.grid( row=2, column=2, padx=10, pady=5, sticky=tk.W)
         
         self.check.pack(side=tk.LEFT, padx=2)
-        self.cFrame.grid(row=2, column=0, columnspan=2, sticky=tk.E+tk.W+tk.S)
+        self.cFrame.grid(row=2, column=0, columnspan=1, sticky=tk.W)
         
         self.state('withdrawn')
         
@@ -115,5 +155,23 @@ class Validate(tk.Toplevel):
         self.grab_release()
         self.destroy()
         return True
+        
+    
+    def onClick(self, event, *args, **kwargs):
+        '''Action taken when a row is clicked.'''
+        
+        item = self.treeview.identify('item', event.x, event.y)
+        
+        if item not in self.selection:
+            self.selection.append(item)
+            self.treeview.item(item, tags='selected')
+            self.style.map('mystyle.Treeview', background=[('selected', 'RoyalBlue2')], foreground=[('selected', 'white')])
+        else:
+            self.selection.remove(item)
+            self.treeview.item(item, tags='unselected')
+            self.style.map('mystyle.Treeview', background=[('selected', self.winProperties['bg'])], foreground=[('selected', 'red')])
+            
+        
+        return
         
         
