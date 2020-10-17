@@ -15,12 +15,12 @@ import tkinter   as     tk
 from   tkinter   import ttk
 from   signal    import signal, SIGINT
 
-from   functools import reduce
 from   threading import Thread
 import os.path   as     opath
 
 # Program imports
 import setup
+from   icons     import iconload
 from   sigint    import sigintHandler   
 from   tab       import Tab           as     myTab
 from   validate  import Validate
@@ -43,7 +43,11 @@ class mainApplication:
         self.parent.config(cursor='arrow')
         
         # Initial program setup
-        self.font, self.loadPath, icons, projects, errCode = setup.init()
+        self.settings, errCode = setup.init()
+        self.font              = self.settings['font']
+        self.loadPath          = self.settings['path']
+        icons                  = iconload(self.settings['iconPath'])
+        projects               = self.settings['projects']
         
         if errCode != 0:
             print('YAML configuration could not be read correctly. A new one with default values has been created instead.')
@@ -62,9 +66,6 @@ class mainApplication:
         # It at least one project exist, show validation window at startup
         if len(self.projects) > 0:
             
-            # All the names combined into one string
-            names  = reduce(lambda a,b: a+b, ['%s, ' %i if pos!=len(self.projects)-1 else str(i) for pos, i in enumerate(self.projects)])
-            
             # Validation window
             window = Validate(self, self, parent, 
                               mainText='You have old projects saved in the setting file. Select the files you want to open.',
@@ -72,13 +73,13 @@ class mainApplication:
                               textProperties={'highlightthickness':0, 'bd':0, 'bg':self.color, 'font':(self.font, 10)},
                               buttonsProperties={'bg':'floral white', 'activebackground':'linen'},
                               winProperties={'bg':self.color},
-                              acceptFunction=lambda *args, **kwargs: self.loadProjects(self.projects))
+                              acceptFunction=lambda *args, **kwargs: self.loadProjects(*args, **kwargs))
             
             self.parent.lift()
             window.overrideredirect(True)
             window.focus_force()
             window.grab_set()
-            window.geometry('+%d+%d' %( self.parent.winfo_screenwidth()//2 - 5*window.winfo_reqwidth()//4, self.parent.winfo_screenheight()//2 - window.winfo_reqheight()//4))
+            window.geometry('+%d+%d' %(self.parent.winfo_screenwidth()//2-2*window.winfo_reqwidth(), self.parent.winfo_screenheight()//2-window.winfo_reqheight()))
             window.state('normal')
         
         
