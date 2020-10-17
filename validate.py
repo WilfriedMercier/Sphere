@@ -2,6 +2,7 @@
 Author: Wilfried Mercier - IRAP
 """
 
+import setup
 import tkinter as     tk
 from   tkinter import ttk
 
@@ -108,18 +109,30 @@ class Validate(tk.Toplevel):
         #                      Buttons                      #
         #####################################################
         
-        self.yes  = tk.Button(self, text='Ok',      underline=0, command=self.accept, **buttonsProperties)
+        self.yes  = tk.Button(self, text='Ok',      underline=0, command=self.accept, **buttonsProperties, state=tk.DISABLED)
         self.no   = tk.Button(self, text='Cancel',  underline=0, command=self.cancel, **buttonsProperties)
         
-        # Checkbox on the bottom
-        self.cFrame = tk.Frame(      self, bg='gray94', bd=0, highlightbackground='gray94', highlightthickness=2)
-        self.check  = tk.Checkbutton(self.cFrame, text=' Do not ask again', bg='gray94', bd=0, highlightthickness=0, activebackground='gray84')
+        ############################################################
+        #                  Checkbox on the bottom                  #
+        ############################################################
         
-        # Binding
+        self.cFrame = tk.Frame(      self, bg='gray94', bd=0, highlightbackground='gray94', highlightthickness=2)
+        self.checkV = tk.IntVar()
+        self.check  = tk.Checkbutton(self.cFrame, text=' Do not ask again', bg='gray94', bd=0, highlightthickness=0, activebackground='gray84', variable=self.checkV)
+        
+        
+        ##################################################
+        #                     Binding                    #
+        ##################################################
+        
         self.bind('<Return>', lambda *args, **kwargs: self.accept(*args, **kwargs))
         self.bind('<Escape>', lambda *args, **kwargs: self.cancel(*args, **kwargs))
         
-        # Griding things up
+        
+        ###########################################################
+        #                    Griding things up                    #
+        ###########################################################
+        
         self.textl.grid(   row=0, pady=5, padx=5)
         self.treeview.grid(row=1, columnspan=3, sticky=tk.E+tk.W, padx=5, pady=10)
         
@@ -136,9 +149,13 @@ class Validate(tk.Toplevel):
         '''Actions taken when the button accept is triggered.'''
         
         try:
-            self.acceptFunction(*args, **kwargs)
+            files = [self.names[self.treeview.index(i)] for i in self.selection]
+            self.acceptFunction(files, *args, **kwargs)
         except:
             pass
+        
+        # Not very fancy but otherwise tk throws an error when closing this window before the main one...
+        del self.checkV
         
         self.grab_release()
         self.destroy()
@@ -148,9 +165,17 @@ class Validate(tk.Toplevel):
         '''Actions taken when the button cancel is triggered.'''
         
         try:
+            # Remove from setting file the YAML file names if asked for
+            if self.checkV.get():
+                self.main.settings['projects'] = []
+                setup.writeConfiguration('settings.yaml', self.main.settings)
+            
             self.cancelFunction(*args, **kwargs)
         except:
             pass
+        
+        # Not very fancy but otherwise tk throws an error when closing this window before the main one...
+        del self.checkV
         
         self.grab_release()
         self.destroy()
@@ -171,7 +196,11 @@ class Validate(tk.Toplevel):
             self.treeview.item(item, tags='unselected')
             self.style.map('mystyle.Treeview', background=[('selected', self.winProperties['bg'])], foreground=[('selected', 'red')])
             
-        
+        # Enable back the yes button if at least one element is selected
+        if len(self.selection)>0 and self.yes.cget('state') == 'disabled':
+            self.yes.configure(state='normal')
+        elif len(self.selection)==0 and self.yes.cget('state') in ['normal', 'active']:
+            self.yes.configure(state=tk.DISABLED)
         return
         
         
