@@ -223,6 +223,31 @@ class Tab(tk.Frame):
         self.lenLat                 = len(self.latitude)
         return
     
+
+    ###################################################
+    #                  Axis methods                   #
+    ###################################################
+    
+    def makeAxis(self):
+        '''Creating a new axis.'''
+        
+        self.ax       = self.figure.add_subplot(111)
+        self.resetAxis()
+        return
+    
+    def resetAxis(self):
+        '''Reset to default the axis.'''
+        
+        self.ax.clear()
+        self.ax.yaxis.set_ticks_position('none')
+        self.ax.yaxis.set_ticks([])
+        
+        self.ax.xaxis.set_ticks_position('none')
+        self.ax.xaxis.set_ticks([])
+        
+        # Default empty image
+        self.im       = self.ax.imshow([[0, 0], [0, 0]], cmap='Greys')
+        return
     
     ###################################################
     #                  Graph methods                  #
@@ -233,17 +258,7 @@ class Tab(tk.Frame):
         
         self.figure   = Figure(figsize=(10, 10), constrained_layout=True, facecolor=self.properties['bg'])
         
-        # Creating an axis
-        self.ax       = self.figure.add_subplot(111)
-        
-        self.ax.yaxis.set_ticks_position('none')
-        self.ax.yaxis.set_ticks([])
-        
-        self.ax.xaxis.set_ticks_position('none')
-        self.ax.xaxis.set_ticks([])
-        
-        # Default empty image
-        self.im       = self.ax.imshow([[0, 0], [0, 0]], cmap='Greys')
+        self.makeAxis()
         
         # Canvas holding figure
         self.figframe = tk.Frame( self, **self.properties)
@@ -324,12 +339,14 @@ class Tab(tk.Frame):
             self.updateSliders()
         return
     
-    def updateGraph(self, latitude=None, longitude=None):
+    def updateGraph(self, latitude=None, longitude=None, forceUpdate=False):
         '''
         Fill the graph with new data.
         
         Parameters
         ----------
+            forceUpdate : bool
+                whether to force the image update even if the plot window still exists or not Default is False.
             latitude : int/float
                 latitude value used to load the new data
             longitude : int/float
@@ -357,12 +374,47 @@ class Tab(tk.Frame):
         self.confParams['x0'] = x0
         
         # Update slider labels
-        self.main.longLabel.configure(text='Latitude: %s°' %self.longitude[x0])
-        self.main.latLabel.configure (text='Longitude: %s°' %self.latitude[y0])
+        self.main.longLabel.configure(text='Longitude: %s°' %self.longitude[x0])
+        self.main.latLabel.configure (text='Latitude: %s°' %self.latitude[y0])
         
         self.getData()
-        self.im.set_data(self.data)
+        
+        # Either update the plot window or the main one
+        if self.main.plotWindow is not None and self.main.plotWindow.state() != 'withdrawn' and not forceUpdate:
+            self.main.plotWindow.update(self.data)
+        else:
+            self.im.set_data(self.data)
+            self.canvas.draw()
+        return
+    
+    def showExplanation(self, *args, **kwargs):
+        '''Show a figure with explanations when the plot window is shown.'''
+        
+        xlim = self.ax.get_xlim()
+        ylim = self.ax.get_ylim()[::-1]
+        
+        self.im.set_data([[0, 0], [0, 0]])
+        
+        midy = (ylim[0]+ylim[1])/2
+        midx = (xlim[0]+xlim[1])/2
+        
+        # Horizontal arrow
+        self.arrows = []
+        self.arrows.append(self.ax.arrow(xlim[0]+0.1, midy,   xlim[1]-xlim[0]-0.2,  0, width=0.02, overhang=0.1, facecolor='black'))
+        self.arrows.append(self.ax.arrow(xlim[1]-0.1, midy, -(xlim[1]-xlim[0]-0.2), 0, width=0.02, overhang=0.1, facecolor='black'))
+    
+        # Vertical arrow
+        self.arrows.append(self.ax.arrow(midx, ylim[0]+0.1, 0,   ylim[1]-ylim[0]-0.2,  width=0.02, overhang=0.1, facecolor='black'))
+        self.arrows.append(self.ax.arrow(midx, ylim[1]-0.1, 0, -(ylim[1]-ylim[0]-0.2), width=0.02, overhang=0.1, facecolor='black'))
+        
+        self.texts = []
+        self.texts.append(self.ax.text(midx+0.3, midy-0.05, 'Longitude', fontsize='xx-large', fontweight='bold'))
+        self.ax.text(midx-0.1, midy-0.3, 'Latitude',  fontsize='xx-large', fontweight='bold', rotation='vertical')
+        self.ax.text(-midx+0.1, midy*2.8, 'Click and drag to move along\nthe longitude and latitude\ndirections', fontsize='large', fontstyle='oblique')
+        
         self.canvas.draw()
+        
+        
         return
     
     
