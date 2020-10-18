@@ -11,19 +11,20 @@ Software to manipulate projections for the sphere orb.
 import matplotlib
 matplotlib.use('TkAgg')
 
-import tkinter   as     tk
-from   tkinter   import ttk
-from   signal    import signal, SIGINT
+import tkinter    as     tk
+from   tkinter    import ttk
+from   signal     import signal, SIGINT
 
-from   threading import Thread
-import os.path   as     opath
+from   threading  import Thread
+import os.path    as     opath
 
 # Program imports
 import setup
-from   icons     import iconload
-from   sigint    import sigintHandler   
-from   tab       import Tab           as     myTab
-from   validate  import Validate
+from   icons      import iconload
+from   sigint     import sigintHandler   
+from   tab        import Tab           as     myTab
+from   plotWindow import PlotWindow
+from   validate   import Validate
 
 class mainApplication:
     '''
@@ -104,10 +105,11 @@ class mainApplication:
         self.iconDict['FOLDER']     = tk.BitmapImage(data=icons['FOLDER'],     maskdata=icons['FOLDER_MASK'],     background='goldenrod')
         self.iconDict['FOLDER_256'] = tk.BitmapImage(data=icons['FOLDER_256'], maskdata=icons['FOLDER_256_MASK'], background='goldenrod')
         self.iconDict['DELETE']     = tk.BitmapImage(data=icons['DELETE'],     maskdata=icons['DELETE_MASK'],     background='light cyan', foreground='black')
+        self.iconDict['DUPPLICATE'] = tk.BitmapImage(data=icons['DUPPLICATE'], maskdata=icons['DUPPLICATE_MASK'], background='black',      foreground='black')
         
         
         #############################################
-        #                 Top frame                 #
+        #                 Buttons                   #
         #############################################
         
         # Top frame with buttons and sliders
@@ -118,6 +120,13 @@ class mainApplication:
         
         self.delButton   = tk.Button(self.topframe, image=self.iconDict['DELETE'], 
                                      bd=0, bg=self.color, highlightbackground=self.color, relief=tk.FLAT, activebackground=self.color)
+        
+        self.duppButton  = tk.Button(self.topframe, image=self.iconDict['DUPPLICATE'],
+                                     bd=0, bg=self.color, highlightbackground=self.color, relief=tk.FLAT, activebackground=self.color)
+        
+        ##############################################
+        #                   Scales                   #
+        ##############################################
         
         self.scaleframe  = tk.Frame( self.topframe,   bg=self.color, bd=0, highlightthickness=0)
         self.latframe    = tk.Frame( self.scaleframe, bg=self.color, bd=0, highlightthickness=0)
@@ -159,7 +168,12 @@ class mainApplication:
         
         self.delButton.bind( '<Enter>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='red',   background=self.color))
         self.delButton.bind( '<Leave>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='black', background='light cyan'))
-        self.delButton.bind( '<Button-1>', lambda *args, **kwargs: self.delTab())
+        self.delButton.bind( '<Button-1>', lambda *args, **kwargs: self.delTab(*args, **kwargs))
+        
+        self.plotWindow = None
+        self.duppButton.bind('<Enter>',    lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='RoyalBlue2'))
+        self.duppButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='black'))
+        self.duppButton.bind('<Button-1>', lambda *args, **kwargs: self.showPlotWindow())
         
         self.latScale.bind(  '<Enter>',    lambda *args, **kwargs:self.latScale.configure(highlightbackground='RoyalBlue2'))
         self.latScale.bind(  '<Leave>',    lambda *args, **kwargs:self.latScale.configure(highlightbackground=self.color))
@@ -175,21 +189,41 @@ class mainApplication:
                   
         self.loadButton.pack(side=tk.LEFT, pady=10, padx=10)
         self.delButton.pack( side=tk.LEFT, pady=10)
-        self.topframe.pack(fill='x')
         
         self.latLabel.grid(  row=0, stick=tk.W)
         self.longLabel.grid( row=0, stick=tk.W)
-        
         self.latScale.grid(  row=1)
         self.longScale.grid( row=1)
         
         self.latframe.pack(  side=tk.LEFT,  padx=10)
         self.longframe.pack( side=tk.LEFT,  padx=10)
-        self.scaleframe.pack(side=tk.RIGHT, padx=10, fill='x', expand=True)
+        self.scaleframe.pack(side=tk.LEFT,  padx=10, fill='x', expand=True)
         
+        self.duppButton.pack(side=tk.RIGHT, padx=10)
+        
+        self.topframe.pack(fill='x')
         self.notebook.pack(fill='both', expand=True)
+       
         
-        
+    def showPlotWindow(self, *args, **kwargs):
+       '''Create or show back the separate window for the plot.'''
+       
+       self.duppButton.pack_forget()
+       self.tabs[self.notebook.select()].showExplanation()
+       
+       data  = self.tabs[self.notebook.select()].data
+       title = self.tabs[self.notebook.select()].name
+       
+       if self.plotWindow is not None:
+           self.plotWindow.setTitle(title)
+           self.plotWindow.state('normal')
+           self.plotWindow.update(data)
+       else:
+           winProperties   = {'bg':'lavender'}
+           self.plotWindow = PlotWindow(self, self, self.parent, data=data, winProperties=winProperties, title=title)
+           
+       return
+    
     ##########################################################
     #                    Tab interactions                    #
     ##########################################################
@@ -210,6 +244,7 @@ class mainApplication:
         # Remove the tab from the notebook AND the tab dictionary
         idd = self.notebook.select()
         if self.tabs[idd].loaded:
+            self.plotWindow.update([[0, 0], [0, 0]])
             self.notebook.forget(idd)
             self.tabs.pop(idd)
         return
