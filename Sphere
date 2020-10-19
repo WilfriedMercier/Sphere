@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Mercier Wilfried - IRAP
+
+python3 __main__.py
+exit "$?"
