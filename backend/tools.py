@@ -1,7 +1,12 @@
 # Mercier Wilfried - IRAP
 # Tools used to generate the projection
 
-from   mpl_toolkits.basemap import Basemap
+# Since it is not used yet, no need to really import it
+try:
+   from   mpl_toolkits.basemap import Basemap
+except:
+   pass
+
 from   threading            import Thread
 import os.path              as     opath
 import numpy                as     np
