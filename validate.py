@@ -73,7 +73,6 @@ class Validate(tk.Toplevel):
         self.cancelFunction = cancelFunction
         
         super().__init__(self.root, **self.winProperties)
-        self.wm_attributes('-type', 'utility')
         self.protocol("WM_DELETE_WINDOW", self.cancel)
         self.resizable(width=True, height=False)
         self.wm_attributes('-topmost', True)
