@@ -29,13 +29,12 @@ So still quite a lot of work to do. But if you want to have a try, you can downl
 
 ## What do I need to run it ?
 
-Obviously python3, one of the latest versions would be preferable. Tkinter and ttk should be installed by default in theory. Additionnaly, here are the following librairies that you need to install:
+Obviously python3, one of the latest versions would be preferable. glob, tkinter and ttk should be installed by default in theory. Additionnaly, here are the following librairies that you need to install:
 
-- numpy
-- matplotlib
-- pyyaml
-- glob
-- __mpl_toolkits.basemap__ (this is the backbone of the projection part of the code, though it is not mandatory for manipulating images)
+- [numpy](https://numpy.org/)
+- [matplotlib](https://matplotlib.org/)
+- [PyYAML](https://pyyaml.org/)
+- [__mpl_toolkits.basemap__](https://matplotlib.org/basemap/) (this is the backbone of the projection part of the code, though it is not mandatory for manipulating images)
 
 The code + icons are actually quite light weight. Most of the size comes from the example, which for the moment is mandatory if you want to try this software, but will not in future versions. So hopefully, the example will be moved somewhere else and this project will be much less heavy than it is now.
 
