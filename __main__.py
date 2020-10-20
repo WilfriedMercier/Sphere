@@ -41,7 +41,7 @@ class mainApplication:
 
         self.parent            = parent
         self.color             = 'white smoke'
-        self.parent.config(cursor='arrow')
+        self.parent.config(cursor='arrow', bg=self.color)
         
         # Initial program setup
         self.settings, errCode = setup.init()
@@ -106,6 +106,7 @@ class mainApplication:
         self.iconDict['FOLDER_256'] = tk.BitmapImage(data=icons['FOLDER_256'], maskdata=icons['FOLDER_256_MASK'], background='goldenrod')
         self.iconDict['DELETE']     = tk.BitmapImage(data=icons['DELETE'],     maskdata=icons['DELETE_MASK'],     background='light cyan', foreground='black')
         self.iconDict['DUPPLICATE'] = tk.BitmapImage(data=icons['DUPPLICATE'], maskdata=icons['DUPPLICATE_MASK'], background='black',      foreground='black')
+        self.iconDict['CONFIG']     = tk.BitmapImage(data=icons['CONFIG'],     maskdata=icons['CONFIG_MASK'],     background=self.color,   foreground='black') 
         
         
         #############################################
@@ -114,6 +115,9 @@ class mainApplication:
         
         # Top frame with buttons and sliders
         self.topframe    = tk.Frame( self.parent, bg=self.color, bd=0, relief=tk.GROOVE)
+        
+        self.confButton  = tk.Button(self.topframe, image=self.iconDict['CONFIG'],
+                                     bd=0, bg=self.color, highlightbackground=self.color, relief=tk.FLAT, activebackground=self.color)
         
         self.loadButton  = tk.Button(self.topframe, image=self.iconDict['FOLDER'], 
                                      bd=0, bg=self.color, highlightbackground=self.color, relief=tk.FLAT, activebackground='black')
@@ -161,10 +165,12 @@ class mainApplication:
         #                               Bindings                              #
         #######################################################################
         
+        self.confButton.bind('<Enter>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='RoyalBlue2'))
+        self.confButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='black'))
+        
         self.loadButton.bind('<Enter>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='black')    if not self.tabs[self.notebook.select()].loaded else None)
         self.loadButton.bind('<Leave>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='lavender') if not self.tabs[self.notebook.select()].loaded else None)
         self.loadButton.bind('<Button-1>', lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
-        
         
         self.delButton.bind( '<Enter>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='red',   background=self.color))
         self.delButton.bind( '<Leave>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='black', background='light cyan'))
@@ -175,19 +181,20 @@ class mainApplication:
         self.duppButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='black'))
         self.duppButton.bind('<Button-1>', lambda *args, **kwargs: self.showPlotWindow())
         
-        self.latScale.bind(  '<Enter>',    lambda *args, **kwargs:self.latScale.configure(highlightbackground='RoyalBlue2'))
-        self.latScale.bind(  '<Leave>',    lambda *args, **kwargs:self.latScale.configure(highlightbackground=self.color))
-        self.longScale.bind( '<Enter>',    lambda *args, **kwargs:self.longScale.configure(highlightbackground='RoyalBlue2'))
-        self.longScale.bind( '<Leave>',    lambda *args, **kwargs:self.longScale.configure(highlightbackground=self.color))
+        self.latScale.bind(  '<Enter>',    lambda *args, **kwargs: self.latScale.configure(highlightbackground='RoyalBlue2'))
+        self.latScale.bind(  '<Leave>',    lambda *args, **kwargs: self.latScale.configure(highlightbackground=self.color))
+        self.longScale.bind( '<Enter>',    lambda *args, **kwargs: self.longScale.configure(highlightbackground='RoyalBlue2'))
+        self.longScale.bind( '<Leave>',    lambda *args, **kwargs: self.longScale.configure(highlightbackground=self.color))
         
-        self.notebook.bind(  '<<NotebookTabChanged>>', lambda event: self.tabs[event.widget.select()].updateSliders())
+        self.notebook.bind(  '<<NotebookTabChanged>>', lambda *args, **kwargs: self.tabCghanged(*args, **kwargs))
                   
                   
         ##########################################################
         #                     Drawing frames                     #
         ##########################################################
                   
-        self.loadButton.pack(side=tk.LEFT, pady=10, padx=10)
+        self.confButton.pack(side=tk.LEFT, pady=10)
+        self.loadButton.pack(side=tk.LEFT, pady=10)
         self.delButton.pack( side=tk.LEFT, pady=10)
         
         self.latLabel.grid(  row=0, stick=tk.W)
@@ -199,9 +206,9 @@ class mainApplication:
         self.longframe.pack( side=tk.LEFT,  padx=10)
         self.scaleframe.pack(side=tk.LEFT,  padx=10, fill='x', expand=True)
         
-        self.duppButton.pack(side=tk.RIGHT, padx=10)
+        self.duppButton.pack(side=tk.RIGHT)
         
-        self.topframe.pack(fill='x')
+        self.topframe.pack(fill='x', padx=10)
         self.notebook.pack(fill='both', expand=True)
        
         
@@ -265,6 +272,17 @@ class mainApplication:
             self.notebook.select(self.notebook.tabs()[-1])
         return
     
+    def tabCghanged(self, event, *args, **kwargs):
+        '''Actions taken when a tab is changed.'''
+        
+        tab = self.tabs[event.widget.select()]
+        tab.updateSliders()
+        
+        if not tab.loaded:
+            self.duppButton.pack_forget()
+        else:
+            self.duppButton.pack(side=tk.RIGHT, padx=10)
+        return
     
     ########################################
     #            Scale commands            #

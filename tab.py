@@ -162,8 +162,8 @@ class Tab(tk.Frame):
             
         # Update sliders will also load data into the image through the callback command
         self.updateSliders()
+        self.main.duppButton.pack(side=tk.RIGHT, padx=10)
         
-        # Enable back the last tab once the data has been correctly loaded in the right tab
         return
     
     def loadYAML(self, file):
