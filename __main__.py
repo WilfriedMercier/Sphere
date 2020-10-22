@@ -168,6 +168,9 @@ class mainApplication:
         #                               Bindings                              #
         #######################################################################
         
+        self.parent.bind('<Control-o>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
+        self.parent.bind('<Control-p>',    lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
+        
         self.confButton.bind('<Enter>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='RoyalBlue2'))
         self.confButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='black'))
         self.confButton.bind('<Button-1>', lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
@@ -224,7 +227,7 @@ class mainApplication:
         '''Create or show back a configuration window to generate projections.'''
         
         winProperties     = {'bg':'white smoke'}
-        entryProperties   = {'bg':'lavender'}
+        entryProperties   = {'bg':'lavender', 'fg':'SpringGreen4'}
         self.configWindow = ConfigWindow(self, self, self.parent, title='Projection facility',
                                          winProperties=winProperties, entryProperties=entryProperties)
         size              = 500

@@ -8,8 +8,10 @@ Created on Sun Oct 18 12:56:36 2020
 Configuration window to generate new projections.
 """
 
-import tkinter as     tk
-from   .entry  import Entry
+import os.path            as     opath
+import tkinter            as     tk
+from   tkinter.filedialog import askopenfilename
+from   .entry             import Entry
 
 class ConfigWindow(tk.Toplevel):
     '''Configuration window to generate new projections.'''
@@ -49,6 +51,9 @@ class ConfigWindow(tk.Toplevel):
         self.entryProperties = entryProperties
         self.textProperties  = textProperties
         
+        self.filetypes       = [('PNG', '*.png'), ('JEPG', '*.jpeg'), ('JPG', '*.jpg'), ('GIF', '*.gif')]
+        self.extensions      = [i[1].strip('.*').lower() for i in self.filetypes]
+        
         ################################################
         #              Default properties              #
         ################################################
@@ -58,6 +63,9 @@ class ConfigWindow(tk.Toplevel):
             
         if 'font' not in self.textProperties:
             self.textProperties['font'] = (self.main.font, 11)
+            
+        if 'fg' not in self.entryProperties:
+            self.entryProperties['fg']  = 'black'
             
         super().__init__(self.root, **winProperties)
         
@@ -71,18 +79,19 @@ class ConfigWindow(tk.Toplevel):
         self.title(self.name)
         
         
-        ####################################
-        #           Project name           #
-        ####################################
+        
+        ###################################
+        #          Setup widgets          #
+        ###################################
+        
+        #           Project name
         
         self.nameFrame = tk.Frame(self,           bg='red', bd=0, highlightthickness=0)
         self.nameLabel = tk.Label(self.nameFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', 
                                   anchor=tk.W, font=textProperties['font'])
         self.nameEntry = Entry(self.nameFrame, self, self.root, dtype=str, defaultValue='', **entryProperties)
         
-        ###################################################
-        #           Open rectangular input file           #
-        ###################################################
+        #           Open rectangular input file           
         
         self.inputFrame  = tk.Frame(self,            bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.inputFrame1 = tk.Frame(self.inputFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
@@ -91,9 +100,19 @@ class ConfigWindow(tk.Toplevel):
         self.inputLabel  = tk.Label(self.inputFrame1, bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Input file (equirectangular projection)', 
                                     anchor=tk.W, font=textProperties['font'])
         
-        self.inputEntry  = Entry(    self.inputFrame2, self, self.root, dtype=str, defaultValue='', **entryProperties)
+        self.inputEntry  = Entry(    self.inputFrame2, self, self.root, dtype=str, defaultValue='',
+                                     traceCommand=self.loadInput, **entryProperties)
+        
         self.inputButton = tk.Button(self.inputFrame2, image=self.main.iconDict['FOLDER_17'], 
-                                     bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground='black')
+                                     bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground='black', 
+                                     command=lambda *args, **kwargs: self.loadInput(askload=True))
+        
+
+        #######################################################################
+        #                               Bindings                              #
+        #######################################################################
+        
+        self.inputButton.bind('<Button-1>', lambda *args, **kwargs: self.loadInput(*args, **kwargs))
         
         
         ##########################################################
@@ -117,6 +136,89 @@ class ConfigWindow(tk.Toplevel):
         
         return
     
+    
+    #######################################
+    #           Loading file(s)           #
+    #######################################
+
+    def askLoad(self, *args, title='', filetypes=('All files', '*.*'), **kwargs):
+        '''Asking which file to open.'''
+        
+        try:
+            # Load YAML file
+            fname = askopenfilename(initialdir=self.main.loadPath, title=title, filetypes=tuple(filetypes + [['All files', '*.*']]))
+        except:
+            print('Failed to open file...')
+            return None
+        
+        if fname != () and fname != '':
+            return fname
+        
+        return None
+
+    def loadInput(self, askload=False, *args, **kwargs):
+        '''Load the input file into the matplotlib frame and write its name into the entry widget.'''
+
+        if askload:
+            fname = self.askLoad(title='Select a equirectangular surface image...', 
+                                 filetypes=self.filetypes)
+        else:
+            fname = self.inputEntry.var.get()
+        
+        # If empty string, set back the default foreground color
+        if fname == '':
+            self.inputEntry.configure(fg=self.entryProperties['fg'])
+            return
+        
+        # If no file was selected or if an error occured, do nothing
+        elif fname is None:
+            return
+        
+        else:
+            self.inputEntry.var.set(fname)
+            okFunction    = lambda *args, **kwargs: self.inputEntry.configure(fg=self.entryProperties['fg'])
+            errorFunction = lambda *args, **kwargs: self.inputEntry.configure(fg='firebrick1')
+            return self.checkFile(fname, okFunction=okFunction, errorFunction=errorFunction)
+        
+
+
+    #################################################
+    #            Miscellaneous functions            #
+    #################################################
+        
+    def close(self, *args, **kwargs):
+        '''Actions taken when the window is closed.'''
+        
+        self.withdraw()
+        return True
+    
+    def checkFile(self, file, *args, okFunction=lambda *args, **kwargs: None, errorFunction=lambda *args, **kwargs: None, **kwargs):
+        '''
+        Check whether a file exists and has the correct type and apply the correct function depending on the result.
+
+        Mandatory parameters
+        --------------------
+            file : str
+                file to check the existence
+                
+        Optional parameters
+        -------------------
+            okFunction : function
+                Function to apply when the file exists
+            errorFunction : function
+                Function to apply when the file does not exist
+                
+        Return the value returned by the correct function.
+        '''
+        
+        if not isinstance(file, str):
+            raise TypeError('File must be a string.')
+        
+        if opath.exists(file) and file.split('.')[-1].lower() in self.extensions:
+            return okFunction()
+        else:
+            return errorFunction()
+        return
 
     def setTitle(self, title):
         '''
@@ -133,8 +235,3 @@ class ConfigWindow(tk.Toplevel):
             self.title(self.name)
         return
 
-    def close(self, *args, **kwargs):
-        '''Actions taken when the window is closed.'''
-        
-        self.withdraw()
-        return True
