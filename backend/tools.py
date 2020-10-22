@@ -135,23 +135,23 @@ class Projection(Thread):
       Thread.__init__(self)
       
       # Data and its longitude and latitude
-      self.data    = data
+      self.data     = data
       self.dataLong = dataLong
       self.dataLat  = dataLat 
       
       # Longitude and latitude where to compute the projections
-      self.indices = longIndices
-      self.long    = longitude
-      self.lat     = latitude
+      self.indices  = longIndices
+      self.long     = longitude
+      self.lat      = latitude
       
       # General output name used to save the figures
-      self.name    = name
-      self.size    = size 
+      self.name     = name
+      self.size     = size 
 
    def run(self):
       
       # Make directory if it does not exist yet
-      shp = np.shape(self.data)[2]
+      shp             = np.shape(self.data)[2]
        
       for index in self.indices:
          for pos, lat in enumerate(self.lat):
