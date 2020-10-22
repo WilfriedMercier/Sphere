@@ -50,6 +50,13 @@ class PlotWindow(tk.Toplevel):
             self.winProperties['bg'] = self.main.bg
             
         super().__init__(self.root, **winProperties)
+        
+        # Need to handle MAC and Windows cases
+        try:
+            self.wm_attributes('-type', ['dialog'])
+        except:
+            pass
+        
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.title(self.name)
         
