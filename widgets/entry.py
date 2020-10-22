@@ -22,7 +22,7 @@ class Entry(tk.Entry):
             Shift + End  : Select text from current location to the end of the text and move cursor to the latter location
     '''
     
-    def __init__(self, parent, root, dtype=float, defaultValue='', traceCommand=lambda: None, **kwargs):
+    def __init__(self, parent, main, root, dtype=float, defaultValue='', traceCommand=lambda: None, **kwargs):
         '''
         Init function for the entry widget.
 
@@ -47,8 +47,10 @@ class Entry(tk.Entry):
         '''
         
         self.parent            = parent
+        self.main              = main
         self.root              = root
         self.traceCommand      = traceCommand
+        self.dtype             = dtype
         
         # Set default value of validate entry option
         if 'validate' not in kwargs:
@@ -59,6 +61,9 @@ class Entry(tk.Entry):
             
         if 'highligthcolor' not in kwargs:
             kwargs['highlightcolor'] = 'RoyalBlue2'
+            
+        if 'selectbackground' not in kwargs:
+            kwargs['selectbackground'] = 'cornflower blue'
         
         self.var                 = tk.StringVar()
         self.var.set(defaultValue)
@@ -71,7 +76,6 @@ class Entry(tk.Entry):
         
         self.bgColor             = self['bg']
         self.highlightbackground = self['highlightbackground']
-        self.dtype               = dtype
         self.buffer              = [self.value]
         
         # Binding trace command with buffer
