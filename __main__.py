@@ -10,21 +10,19 @@ Software to manipulate projections for the sphere orb.
 
 import matplotlib
 matplotlib.use('TkAgg')
+ 
+import tkinter      as     tk
+from   tkinter      import ttk
+from   signal       import signal, SIGINT
 
-import tkinter    as     tk
-from   tkinter    import ttk
-from   signal     import signal, SIGINT
-
-from   threading  import Thread
-import os.path    as     opath
+from   threading    import Thread
+import os.path      as     opath
 
 # Program imports
 import setup
-from   icons      import iconload
-from   sigint     import sigintHandler   
-from   tab        import Tab           as     myTab
-from   plotWindow import PlotWindow
-from   validate   import Validate
+from   icons        import iconload
+from   sigint       import sigintHandler   
+from   widgets      import PlotWindow, ConfigWindow, Validate, Tab
 
 class mainApplication:
     '''
@@ -77,7 +75,11 @@ class mainApplication:
                               acceptFunction=lambda *args, **kwargs: self.loadProjects(*args, **kwargs))
             
             self.parent.lift()
+            
+            # For MAC it seems we must set False and then True
+            window.overrideredirect(False)
             window.overrideredirect(True)
+            
             window.focus_force()
             window.grab_set()
             window.geometry('+%d+%d' %(self.parent.winfo_screenwidth()//2-2*window.winfo_reqwidth(), self.parent.winfo_screenheight()//2-window.winfo_reqheight()))
@@ -104,6 +106,7 @@ class mainApplication:
         self.iconDict               = {}
         self.iconDict['FOLDER']     = tk.BitmapImage(data=icons['FOLDER'],     maskdata=icons['FOLDER_MASK'],     background='goldenrod')
         self.iconDict['FOLDER_256'] = tk.BitmapImage(data=icons['FOLDER_256'], maskdata=icons['FOLDER_256_MASK'], background='goldenrod')
+        self.iconDict['FOLDER_17']  = tk.BitmapImage(data=icons['FOLDER_17'],  maskdata=icons['FOLDER_17_MASK'],  background='goldenrod')
         self.iconDict['DELETE']     = tk.BitmapImage(data=icons['DELETE'],     maskdata=icons['DELETE_MASK'],     background='light cyan', foreground='black')
         self.iconDict['DUPPLICATE'] = tk.BitmapImage(data=icons['DUPPLICATE'], maskdata=icons['DUPPLICATE_MASK'], background='black',      foreground='black')
         self.iconDict['CONFIG']     = tk.BitmapImage(data=icons['CONFIG'],     maskdata=icons['CONFIG_MASK'],     background=self.color,   foreground='black') 
@@ -167,6 +170,7 @@ class mainApplication:
         
         self.confButton.bind('<Enter>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='RoyalBlue2'))
         self.confButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='black'))
+        self.confButton.bind('<Button-1>', lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
         
         self.loadButton.bind('<Enter>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='black')    if not self.tabs[self.notebook.select()].loaded else None)
         self.loadButton.bind('<Leave>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='lavender') if not self.tabs[self.notebook.select()].loaded else None)
@@ -210,6 +214,24 @@ class mainApplication:
         
         self.topframe.pack(fill='x', padx=10)
         self.notebook.pack(fill='both', expand=True)
+        
+        
+    ##############################################
+    #            Creating new windows            #
+    ##############################################
+        
+    def showConfigWindow(self, *args, **kwargs):
+        '''Create or show back a configuration window to generate projections.'''
+        
+        winProperties     = {'bg':'white smoke'}
+        entryProperties   = {'bg':'lavender'}
+        self.configWindow = ConfigWindow(self, self, self.parent, title='Projection facility',
+                                         winProperties=winProperties, entryProperties=entryProperties)
+        size              = 500
+        self.configWindow.geometry('%dx%d+%d+%d' %(size, size, (self.parent.winfo_screenwidth()-size)//2, (self.parent.winfo_screenheight()-size)//2))
+            
+        
+        return
        
         
     def showPlotWindow(self, *args, **kwargs):
@@ -238,7 +260,7 @@ class mainApplication:
     def addTab(self, *args, **kwargs):
         '''Add a new tab in the tab list.'''
             
-        tab                                 = myTab(self.notebook, self, self.notebook, properties={'bg':'lavender', 'bd':1, 'highlightthickness':0})
+        tab                                 = Tab(self.notebook, self, self.notebook, properties={'bg':'lavender', 'bd':1, 'highlightthickness':0})
         self.tabs[self.notebook.tabs()[-1]] = tab
         
         if len(self.tabs) > 1:    
