@@ -230,8 +230,8 @@ class mainApplication:
         entryProperties   = {'bg':'lavender', 'fg':'SpringGreen4'}
         self.configWindow = ConfigWindow(self, self, self.parent, title='Projection facility',
                                          winProperties=winProperties, entryProperties=entryProperties)
-        size              = 500
-        self.configWindow.geometry('%dx%d+%d+%d' %(size, size, (self.parent.winfo_screenwidth()-size)//2, (self.parent.winfo_screenheight()-size)//2))
+        size              = (850, 550)
+        self.configWindow.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.parent.winfo_screenwidth()-size[0])//2, (self.parent.winfo_screenheight()-size[1])//2))
             
         
         return
