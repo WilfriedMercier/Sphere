@@ -8,10 +8,13 @@ Created on Sun Oct 18 12:56:36 2020
 Configuration window to generate new projections.
 """
 
-import os.path            as     opath
-import tkinter            as     tk
-from   tkinter.filedialog import askopenfilename
-from   .entry             import Entry
+import os.path                           as     opath
+import matplotlib.pyplot                 as     plt
+import tkinter                           as     tk
+from   tkinter.filedialog                import askopenfilename
+from   matplotlib.figure                 import Figure
+from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from   .entry                            import Entry
 
 class ConfigWindow(tk.Toplevel):
     '''Configuration window to generate new projections.'''
@@ -47,10 +50,16 @@ class ConfigWindow(tk.Toplevel):
         self.root            = root
         self.name            = title
         
+        # Layout properties
         self.winProperties   = winProperties
         self.entryProperties = entryProperties
         self.textProperties  = textProperties
         
+        # Attributes related to the matplotlib graph
+        self.data            = None
+        self.canvas          = None
+        
+        # Allowed file types and file extensions when loading the image
         self.filetypes       = [('PNG', '*.png'), ('JEPG', '*.jpeg'), ('JPG', '*.jpg'), ('GIF', '*.gif')]
         self.extensions      = [i[1].strip('.*').lower() for i in self.filetypes]
         
@@ -79,14 +88,13 @@ class ConfigWindow(tk.Toplevel):
         self.title(self.name)
         
         
-        
         ###################################
         #          Setup widgets          #
         ###################################
         
         #           Project name
         
-        self.nameFrame = tk.Frame(self,           bg='red', bd=0, highlightthickness=0)
+        self.nameFrame = tk.Frame(self,           bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.nameLabel = tk.Label(self.nameFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', 
                                   anchor=tk.W, font=textProperties['font'])
         self.nameEntry = Entry(self.nameFrame, self, self.root, dtype=str, defaultValue='', **entryProperties)
@@ -105,14 +113,14 @@ class ConfigWindow(tk.Toplevel):
         
         self.inputButton = tk.Button(self.inputFrame2, image=self.main.iconDict['FOLDER_17'], 
                                      bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground='black', 
-                                     command=lambda *args, **kwargs: self.loadInput(askload=True))
+                                     command=lambda *args, **kwargs: self.askLoad(title='Select a equirectangular surface image...', filetypes=self.filetypes))
         
 
         #######################################################################
         #                               Bindings                              #
         #######################################################################
         
-        self.inputButton.bind('<Button-1>', lambda *args, **kwargs: self.loadInput(*args, **kwargs))
+        self.inputButton.bind('<Button-1>', lambda *args, **kwargs: self.askLoad(*args, **kwargs))
         
         
         ##########################################################
@@ -147,40 +155,126 @@ class ConfigWindow(tk.Toplevel):
         try:
             # Load YAML file
             fname = askopenfilename(initialdir=self.main.loadPath, title=title, filetypes=tuple(filetypes + [['All files', '*.*']]))
+            print(fname)
         except:
             print('Failed to open file...')
             return None
         
-        if fname != () and fname != '':
-            return fname
         
-        return None
-
-    def loadInput(self, askload=False, *args, **kwargs):
-        '''Load the input file into the matplotlib frame and write its name into the entry widget.'''
-
-        if askload:
-            fname = self.askLoad(title='Select a equirectangular surface image...', 
-                                 filetypes=self.filetypes)
+        if fname == () or fname == '':
+            return None
         else:
-            fname = self.inputEntry.var.get()
+            self.main.loadPath = opath.dirname(fname)
+            self.inputEntry.var.set(fname)
+            return fname
+
+    def loadInput(self, *args, **kwargs):
+        '''Load the input file into the matplotlib frame and write its name into the entry widget.'''
+        
+        def okFunction(*args, **kwargs):
+            self.inputEntry.configure(fg=self.entryProperties['fg'])
+            self.makeGraph()
+            return
+        
+        def errorFunction(*args, **kwargs):
+            self.inputEntry.configure(fg='firebrick1')
+            self.hideGraph()
+            return
+
+        # Retrieve name written in Entry
+        fname = self.inputEntry.var.get()
         
         # If empty string, set back the default foreground color
         if fname == '':
             self.inputEntry.configure(fg=self.entryProperties['fg'])
+            errorFunction()
             return
         
         # If no file was selected or if an error occured, do nothing
         elif fname is None:
             return
         
+        # Otherwise check whether the file exists and apply the correct function
         else:
-            self.inputEntry.var.set(fname)
-            okFunction    = lambda *args, **kwargs: self.inputEntry.configure(fg=self.entryProperties['fg'])
-            errorFunction = lambda *args, **kwargs: self.inputEntry.configure(fg='firebrick1')
-            return self.checkFile(fname, okFunction=okFunction, errorFunction=errorFunction)
+            self.checkFile(fname, okFunction=okFunction, errorFunction=errorFunction)
+        return
         
 
+    ###################################################
+    #                  Axis methods                   #
+    ###################################################
+    
+    def makeAxis(self, *args, **kwargs):
+        '''Creating a new axis.'''
+        
+        self.ax       = self.figure.add_subplot(111)
+        self.setAxis()
+        return
+    
+    def updateAxis(self, *args, **kwargs):
+        '''Update the data in the axis.'''
+        
+        #self.im.set_data(self.data)
+        self.setAxis()
+        return
+
+    def setAxis(self, *args, **kwargs):
+        '''Set the axis for a new figure.'''
+        
+        self.ax.autoscale_view(True,True,True)
+        self.ax.clear()
+        self.ax.yaxis.set_ticks_position('none')
+        self.ax.yaxis.set_ticks([])
+        
+        self.ax.xaxis.set_ticks_position('none')
+        self.ax.xaxis.set_ticks([])
+        
+        # Default empty image
+        if self.data is None:
+            print('No data loaded...')
+            self.data = [[0]*4]*2
+        
+        self.im       = self.ax.imshow(self.data, cmap='Greys')
+        return
+
+    
+    ###################################################
+    #                  Graph methods                  #
+    ###################################################
+    
+    def hideGraph(self, *args, **kwargs):
+        '''Hide the graph frame if no data is loaded.'''
+        
+        if self.canvas is not None:
+            self.figframe.pack_forget()
+        return
+    
+    def makeGraph(self, *args, **kwargs):
+        '''Generate a matplotlib graph with the image loaded.'''
+            
+        # RGB array with image data
+        self.data         = plt.imread(self.inputEntry.var.get(), format=opath.splitext(self.inputEntry.var.get())[-1])
+        
+        if self.canvas is None:
+            # Get background color and convert in matplotlib RGB values
+            color         = [i/255**2 for i in self.root.winfo_rgb(self.winProperties['bg'])]
+            
+            self.figure   = Figure(figsize=(20, 10), constrained_layout=True, facecolor=color)
+            self.makeAxis()
+            
+            # Canvas holding figure
+            self.figframe = tk.Frame( self, bg='lavender', bd=1, highlightthickness=0)
+            self.canvas   = FigureCanvasTkAgg(self.figure, master=self.figframe)
+            self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        else:
+            self.updateAxis()
+            
+        # Draw frame containing the figure
+        self.canvas.draw()
+        self.figframe.pack(side=tk.BOTTOM, fill='x', expand=True)
+
+        return
+        
 
     #################################################
     #            Miscellaneous functions            #
@@ -220,7 +314,7 @@ class ConfigWindow(tk.Toplevel):
             return errorFunction()
         return
 
-    def setTitle(self, title):
+    def setTitle(self, title, *args, **kwargs):
         '''
         Set a new title for the window.
 
