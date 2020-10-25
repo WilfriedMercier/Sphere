@@ -50,6 +50,9 @@ class ConfigWindow(tk.Toplevel):
         self.root            = root
         self.name            = title
         
+        # Dictionnary with flags to know when a value is incorrect before launching the projection routine
+        self.error           = {'thread':False}
+        
         # Layout properties
         self.winProperties   = winProperties
         self.entryProperties = entryProperties
@@ -92,25 +95,51 @@ class ConfigWindow(tk.Toplevel):
         #          Setup widgets          #
         ###################################
         
-        self.masterFrame = tk.Frame(     self,             bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        self.boundFrame  = tk.LabelFrame(self.masterFrame, bg=self.winProperties['bg'], bd=1, highlightthickness=0, text='Setup bounds',       font=self.textProperties['font'])
-        self.entryFrame  = tk.LabelFrame(self.masterFrame, bg=self.winProperties['bg'], bd=1, highlightthickness=0, text='Project properties', font=self.textProperties['font'])
+        '''
+        Master frames
+        -------------
+            self.masterFrame : main frame containing all the others
+            self.firstCol    : 1st column frame
+            self.boundFrame  : frame containing the latitude and longitude bounds widgets
+            self.dposFrame   : frame containing the default position widgets
+            self.entryFrame  : frame containing the entry widgets on the second column
+            self.line2col2   : frame for the second line of the second column
+        '''
         
-        # Project name
+        self.masterFrame = tk.Frame(     self,             bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.line1       = tk.Frame(     self.masterFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.line2       = tk.Frame(     self.masterFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
+        self.boundFrame  = tk.LabelFrame(self.line1,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Setup bounds',       font=self.textProperties['font'])
+        self.entryFrame  = tk.LabelFrame(self.line1,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project properties', font=self.textProperties['font'])
+        
+        self.dposFrame   = tk.LabelFrame(self.line2,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Default position',   font=self.textProperties['font'])
+        self.line2col2   = tk.Frame(     self.line2,       bg=self.winProperties['bg'], bd=1, highlightthickness=0)
+        
+        '''
+        Project name
+        ------------
+            self.nameFrame : frame containing widgets relative to typing the project name
+        '''
         
         self.nameFrame   = tk.Frame(self.entryFrame,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        self.nameLabel   = tk.Label(self.nameFrame,   bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', 
-                                    anchor=tk.W, font=textProperties['font'])
+        self.nameLabel   = tk.Label(self.nameFrame,   bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', anchor=tk.W, font=(self.main.font, 10))
         self.nameEntry   = Entry(   self.nameFrame, self, self.root, dtype=str, defaultValue='', **entryProperties)
         
-        # Open rectangular input file           
+        '''
+        Open rectangular input file  
+        ---------------------------
+            self.inputFame   : frame containing widgets relative to selecting an input file
+            self.inputFrame1 : frame for the label widget
+            self.inputFrame2 : frame for the entry + button widgets
+        '''
         
         self.inputFrame  = tk.Frame(self.entryFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.inputFrame1 = tk.Frame(self.inputFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.inputFrame2 = tk.Frame(self.inputFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         
         self.inputLabel  = tk.Label(self.inputFrame1, bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Input file (equirectangular projection)', 
-                                    anchor=tk.W, font=textProperties['font'])
+                                    anchor=tk.W, font=(self.main.font, 10))
         
         self.inputEntry  = Entry(   self.inputFrame2, self, self.root, dtype=str, defaultValue='',
                                     traceCommand=self.loadInput, **entryProperties)
@@ -118,6 +147,31 @@ class ConfigWindow(tk.Toplevel):
         self.inputButton = tk.Button(self.inputFrame2, image=self.main.iconDict['FOLDER_17'], 
                                      bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground='black', 
                                      command=lambda *args, **kwargs: self.askLoad(title='Select a equirectangular surface image...', filetypes=self.filetypes))
+        
+        '''
+        Number of threads widgets
+        -------------------------
+            self.threadAll   : frame for all the thread widgets
+            self.thLablFrame : frame for the label of the thread widgets
+            self.threadFrame : frame for the buttons+entry of the thread widgets
+        '''
+        
+        
+        self.threadAll   = tk.Frame( self.line2col2,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
+        self.thLablFrame = tk.Frame( self.threadAll,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.threadLabel = tk.Label( self.thLablFrame, text='Number of threads', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
+        
+        self.threadFrame = tk.Frame( self.threadAll, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
+        self.minButton   = tk.Button(self.threadFrame, text='-', bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], activebackground='black', state='disabled',
+                                     command=lambda *args, **kwargs: None)
+        
+        self.maxButton   = tk.Button(self.threadFrame, text='+', bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], activebackground='black',
+                                     command=lambda *args, **kwargs: None)
+        
+        self.threadEntry = Entry(    self.threadFrame, self, self.root, dtype=int, defaultValue=1, width=3, justify=tk.CENTER, **entryProperties,
+                                     traceCommand=lambda *args, **kwargs: self.updateThreadValue(*args, **kwargs))
         
         # Latitude and longitude limits widgets
         
@@ -160,22 +214,44 @@ class ConfigWindow(tk.Toplevel):
         self.longMinScale.set(-180)
         self.longMaxScale.set( 180)
         
+        # Default position
+        
+        self.dposLatFrame = tk.Frame(     self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.dposLonFrame = tk.Frame(     self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
+        self.dposLatLabel = tk.Label(self.dposLatFrame, text='Latitude',  bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
+        self.dposLonLabel = tk.Label(self.dposLonFrame, text='Longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
+        
+        self.dposLatScale = tk.Scale(self.dposLatFrame, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
+                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     command=lambda *args, **kwargs: None)
+        
+        self.dposLonScale = tk.Scale(self.dposLonFrame, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
+                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     command=lambda *args, **kwargs: None)
+        
         
         #######################################################################
         #                               Bindings                              #
         #######################################################################
 
-        self.latMinScale.bind(   '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.latMinScale.bind(   '<Leave>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground=self.winProperties['bg']))
+        self.latMinScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
+        self.latMinScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground=self.winProperties['bg']))
         
-        self.latMaxScale.bind(   '<Enter>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground='RoyalBlue2'))
-        self.latMaxScale.bind(   '<Leave>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground=self.winProperties['bg']))
+        self.latMaxScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground='RoyalBlue2'))
+        self.latMaxScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground=self.winProperties['bg']))
         
-        self.longMinScale.bind(  '<Enter>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.longMinScale.bind(  '<Leave>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground=self.winProperties['bg']))
+        self.longMinScale.bind('<Enter>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground='RoyalBlue2'))
+        self.longMinScale.bind('<Leave>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground=self.winProperties['bg']))
         
-        self.longMaxScale.bind(  '<Enter>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground='RoyalBlue2'))
-        self.longMaxScale.bind(  '<Leave>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground=self.winProperties['bg']))
+        self.longMaxScale.bind('<Enter>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground='RoyalBlue2'))
+        self.longMaxScale.bind('<Leave>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground=self.winProperties['bg']))
+        
+        # Buttons bindings
+        self.minButton.bind('   <Button-1>', lambda *args, **kwargs: self.decreaseThread(*args, **kwargs))
+        self.maxButton.bind('   <Button-1>', lambda *args, **kwargs: self.increaseThread(*args, **kwargs))
         
         
         ##########################################################
@@ -183,19 +259,29 @@ class ConfigWindow(tk.Toplevel):
         ##########################################################
         
         # Project name widgets
-        self.nameLabel.pack(side=tk.TOP,    fill='x', expand=True)
-        self.nameEntry.pack(side=tk.BOTTOM, fill='x', expand=True)
-        self.nameFrame.pack(side=tk.TOP,    fill='x', padx=10, pady=10)
+        self.nameLabel.pack(side=tk.TOP,      fill='x', expand=True)
+        self.nameEntry.pack(side=tk.BOTTOM,   fill='x', expand=True)
+        self.nameFrame.pack(side=tk.TOP,      fill='x', padx=10, pady=12)
         
         # Open file widgets
-        self.inputLabel.pack( side=tk.LEFT, fill='x', expand=True)
-        self.inputFrame1.pack(side=tk.TOP,  fill='x', expand=True)
+        self.inputLabel.pack( side=tk.LEFT,   fill='x', expand=True)
+        self.inputFrame1.pack(side=tk.TOP,    fill='x', expand=True)
         
         self.inputEntry.pack( side=tk.LEFT,   fill='x', expand=True)
-        self.inputButton.pack(side=tk.RIGHT,  padx=10)
+        self.inputButton.pack(side=tk.RIGHT,            padx=10)
         self.inputFrame2.pack(side=tk.BOTTOM, fill='x', expand=True)
+        self.inputFrame.pack( side=tk.TOP,    fill='x', padx=10, )
         
-        self.inputFrame.pack( side=tk.TOP, padx=10, fill='x')
+        # Thread widgets
+        self.threadLabel.pack(side=tk.LEFT)
+        
+        self.minButton.pack(  side=tk.LEFT)
+        self.threadEntry.pack(side=tk.LEFT, padx=5)
+        self.maxButton.pack(  side=tk.LEFT)
+        
+        self.thLablFrame.pack(side=tk.TOP)
+        self.threadFrame.pack(side=tk.BOTTOM)
+        self.threadAll.pack(  side=tk.LEFT, padx=10, anchor=tk.S+tk.W)
         
         # Lat and long bounds widgets
         self.latMinLabel.pack( side=tk.TOP,    fill='x', expand=True)
@@ -215,14 +301,95 @@ class ConfigWindow(tk.Toplevel):
         self.longMinframe.grid(row=1, column=0, padx=15)
         self.longMaxframe.grid(row=1, column=1)
         
+        # Default position widgets
+        self.dposLatLabel.pack(side=tk.TOP,    fill='x', expand=True)
+        self.dposLatScale.pack(side=tk.BOTTOM, fill='x', expand=True)
+        
+        self.dposLonLabel.pack(side=tk.TOP,    fill='x', expand=True)
+        self.dposLonScale.pack(side=tk.BOTTOM, fill='x', expand=True)
+        
+        self.dposLatFrame.pack(side=tk.LEFT,   fill='x', padx=15, pady=10)
+        self.dposLonFrame.pack(side=tk.LEFT,   fill='x',          pady=10)
+        
         # Master frames
-        self.boundFrame.pack(side=tk.LEFT, padx=5)
-        self.entryFrame.pack(side=tk.LEFT, fill='x', expand=True, padx=5)
-        self.masterFrame.pack(side=tk.TOP, fill='x', pady=5)
+        self.boundFrame.pack(  side=tk.LEFT,   fill='x', padx=3)
+        self.entryFrame.pack(  side=tk.LEFT,   fill='x', padx=3,          expand=True)
+        self.line1.pack(       side=tk.TOP,    fill='x')
+        
+        self.dposFrame.pack(   side=tk.LEFT,   fill='x', padx=3)
+        self.line2col2.pack(   side=tk.LEFT ,  fill='x', padx=3,  pady=8, expand=True, anchor=tk.S, )
+        self.line2.pack(       side=tk.LEFT,   fill='x',          pady=10, expand=True)
+        
+        self.masterFrame.pack( side=tk.TOP,    fill='x',          pady=5)
         
         return
     
     
+    ############################################
+    #           Thread interactions            #
+    ############################################
+    
+    def decreaseThread(self, *args, **kwargs):
+        '''Decrease by 1 the number of threads.'''
+        
+        value     = self.threadEntry.var.get()
+        
+        if value == '' or value =='1':
+            self.threadEntry.var.set(1)
+        else:
+            self.threadEntry.var.set(int(value)-1)
+            
+        return
+    
+    def increaseThread(self, *args, **kwargs):
+        '''Decrease by 1 the number of threads.'''
+        
+        value     = self.threadEntry.var.get()
+        
+        if value == '':
+            self.threadEntry.var.set(1)
+        elif value == self.main.cpuCount:
+            self.threadEntry.var.set(self.main.cpuCount)
+        else:
+            self.threadEntry.var.set(int(value)+1)
+            
+        return
+    
+    def updateThreadValue(self, *args, **kwargs):
+        '''Actions taken when the thread value is modified.'''
+        
+        value = self.threadEntry.var.get()
+        
+        # If entry is empty we only change to 1 when the widget loses focus
+        if value == '':
+            self.error['thread']   = True
+            self.threadEntry.triggerError()
+            return
+        else:
+           value = int(value) 
+           self.error['thread']  = False 
+           self.threadEntry.removeError()
+            
+        # Deal with cases where number of threads goes beyond the max value or the min (1)
+        if value > self.main.cpuCount:
+            self.threadEntry.var.set(self.main.cpuCount)
+        elif value < 1:
+            self.threadEntry.var.set('1')
+            
+        value = int(self.threadEntry.var.get())
+        
+        if value == self.main.cpuCount:
+            self.maxButton.config(state='disabled')
+        elif value == 1:
+            self.minButton.config(state='disabled')
+        else:
+            if self.maxButton['state'] == 'disabled':
+                self.maxButton.config(state='normal')
+            if self.minButton['state'] == 'disabled':
+                self.minButton.config(state='normal')
+        return
+        
+        
     ############################################
     #           Sliders interactions           #
     ############################################
@@ -311,7 +478,6 @@ class ConfigWindow(tk.Toplevel):
     def updateAxis(self, *args, **kwargs):
         '''Update the data in the axis.'''
         
-        #self.im.set_data(self.data)
         self.setAxis()
         return
 
@@ -332,6 +498,8 @@ class ConfigWindow(tk.Toplevel):
             self.data = [[0]*4]*2
         
         self.im       = self.ax.imshow(self.data, cmap='Greys')
+        self.xlim     = self.ax.get_xlim()
+        self.ylim     = self.ax.get_ylim()[::-1]
         return
 
     

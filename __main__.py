@@ -8,6 +8,7 @@ Created on 03/10/2020
 Software to manipulate projections for the sphere orb.
 """
 
+import multiprocessing
 import matplotlib
 matplotlib.use('TkAgg')
  
@@ -51,6 +52,9 @@ class mainApplication:
         if errCode != 0:
             print('YAML configuration could not be read correctly. A new one with default values has been created instead.')
        
+        # Miscellaneous parameters
+        self.cpuCount          = multiprocessing.cpu_count()
+        
         
         ######################################################
         #               Check for old projects               #
