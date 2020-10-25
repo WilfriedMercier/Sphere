@@ -74,7 +74,7 @@ class ConfigWindow(tk.Toplevel):
             self.winProperties['bg']    = self.main.bg
             
         if 'font' not in self.textProperties:
-            self.textProperties['font'] = (self.main.font, 11)
+            self.textProperties['font'] = (self.main.font, 11, 'bold')
             
         if 'fg' not in self.entryProperties:
             self.entryProperties['fg']  = 'black'
@@ -99,7 +99,8 @@ class ConfigWindow(tk.Toplevel):
         Master frames
         -------------
             self.masterFrame : main frame containing all the others
-            self.firstCol    : 1st column frame
+            self.line1       : 1st line frame
+            self.line2       : 2nd line frame
             self.boundFrame  : frame containing the latitude and longitude bounds widgets
             self.dposFrame   : frame containing the default position widgets
             self.entryFrame  : frame containing the entry widgets on the second column
@@ -156,22 +157,24 @@ class ConfigWindow(tk.Toplevel):
             self.threadFrame : frame for the buttons+entry of the thread widgets
         '''
         
-        
         self.threadAll   = tk.Frame( self.line2col2,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         
         self.thLablFrame = tk.Frame( self.threadAll,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.threadLabel = tk.Label( self.thLablFrame, text='Number of threads', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         
-        self.threadFrame = tk.Frame( self.threadAll, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.threadFrame = tk.Frame( self.threadAll,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         
-        self.minButton   = tk.Button(self.threadFrame, text='-', bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], activebackground='black', state='disabled',
+        self.minButton   = tk.Button(self.threadFrame, bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], activebackground='black', state='disabled',
+                                     text='-', font=('fixed', 10, 'bold'), activeforeground='white',
                                      command=lambda *args, **kwargs: None)
         
-        self.maxButton   = tk.Button(self.threadFrame, text='+', bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], activebackground='black',
+        self.maxButton   = tk.Button(self.threadFrame, bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], activebackground='black',
+                                     text='+', font=('fixed', 10, 'bold'), activeforeground='white',
                                      command=lambda *args, **kwargs: None)
         
         self.threadEntry = Entry(    self.threadFrame, self, self.root, dtype=int, defaultValue=1, width=3, justify=tk.CENTER, **entryProperties,
                                      traceCommand=lambda *args, **kwargs: self.updateThreadValue(*args, **kwargs))
+        self.threadEntry.configure(fg='black')
         
         # Latitude and longitude limits widgets
         
@@ -208,11 +211,14 @@ class ConfigWindow(tk.Toplevel):
                                      bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.longMaxScale, *args, **kwargs))
         
-        # Apply initial values for the scales
+        # Apply initial values for the scales and grey out widgets as long as no data is loaded
         self.latMinScale.set( -90)
         self.latMaxScale.set(  90)
         self.longMinScale.set(-180)
         self.longMaxScale.set( 180)
+        
+        self.latMinScale.configure(state=tk.DISABLED)
+        self.latMaxScale.configure(state='disabled')
         
         # Default position
         
@@ -237,18 +243,6 @@ class ConfigWindow(tk.Toplevel):
         #                               Bindings                              #
         #######################################################################
 
-        self.latMinScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.latMinScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.latMaxScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground='RoyalBlue2'))
-        self.latMaxScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.longMinScale.bind('<Enter>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.longMinScale.bind('<Leave>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.longMaxScale.bind('<Enter>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground='RoyalBlue2'))
-        self.longMaxScale.bind('<Leave>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground=self.winProperties['bg']))
-        
         # Buttons bindings
         self.minButton.bind('   <Button-1>', lambda *args, **kwargs: self.decreaseThread(*args, **kwargs))
         self.maxButton.bind('   <Button-1>', lambda *args, **kwargs: self.increaseThread(*args, **kwargs))
@@ -313,11 +307,11 @@ class ConfigWindow(tk.Toplevel):
         
         # Master frames
         self.boundFrame.pack(  side=tk.LEFT,   fill='x', padx=3)
-        self.entryFrame.pack(  side=tk.LEFT,   fill='x', padx=3,          expand=True)
+        self.entryFrame.pack(  side=tk.LEFT,   fill='x', padx=3,           expand=True)
         self.line1.pack(       side=tk.TOP,    fill='x')
         
         self.dposFrame.pack(   side=tk.LEFT,   fill='x', padx=3)
-        self.line2col2.pack(   side=tk.LEFT ,  fill='x', padx=3,  pady=8, expand=True, anchor=tk.S, )
+        self.line2col2.pack(   side=tk.LEFT ,  fill='x', padx=3,  pady=5,  expand=True, anchor=tk.S)
         self.line2.pack(       side=tk.LEFT,   fill='x',          pady=10, expand=True)
         
         self.masterFrame.pack( side=tk.TOP,    fill='x',          pady=5)
@@ -393,6 +387,37 @@ class ConfigWindow(tk.Toplevel):
     ############################################
     #           Sliders interactions           #
     ############################################
+    
+    def activateSliders(self, *args, **kwargs):
+        '''Active all the scales in the window.'''
+        
+        # (Re)activate
+        self.latMinScale.configure(state=tk.NORMAL)
+        self.latMaxScale.configure(state=tk.NORMAL)
+        self.lonMinScale.configure(state=tk.NORMAL)
+        self.lonMaxScale.configure(state=tk.NORMAL)
+        self.dposLatScale.configure(state=tk.NORMAL)
+        self.dposLonScale.configure(state=tk.NORMAL)
+        
+        # Set (back) bindings
+        self.latMinScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
+        self.latMinScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground=self.winProperties['bg']))
+        
+        self.latMaxScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground='RoyalBlue2'))
+        self.latMaxScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground=self.winProperties['bg']))
+        
+        self.longMinScale.bind('<Enter>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground='RoyalBlue2'))
+        self.longMinScale.bind('<Leave>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground=self.winProperties['bg']))
+        
+        self.longMaxScale.bind('<Enter>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground='RoyalBlue2'))
+        self.longMaxScale.bind('<Leave>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground=self.winProperties['bg']))
+        
+        self.dposLatScale.bind('<Enter>',    lambda *args, **kwargs: self.dposLatScale.configure(highlightbackground='RoyalBlue2'))
+        self.dposLatScale.bind('<Leave>',    lambda *args, **kwargs: self.dposLatScale.configure(highlightbackground=self.winProperties['bg']))
+        
+        self.dposLonScale.bind('<Enter>',    lambda *args, **kwargs: self.dposLonScale.configure(highlightbackground='RoyalBlue2'))
+        self.dposLonScale.bind('<Leave>',    lambda *args, **kwargs: self.dposLonScale.configure(highlightbackground=self.winProperties['bg']))
+        
     
     def sliderUpdate(self, slider, *args, **kwargs):
         '''Actions taken when the slider is updated.'''
@@ -548,6 +573,7 @@ class ConfigWindow(tk.Toplevel):
     def close(self, *args, **kwargs):
         '''Actions taken when the window is closed.'''
         
+        self.main.confButton.configure(state=tk.NORMAL)
         self.withdraw()
         return True
     

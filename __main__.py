@@ -172,30 +172,30 @@ class mainApplication:
         #                               Bindings                              #
         #######################################################################
         
-        self.parent.bind('<Control-o>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
-        self.parent.bind('<Control-p>',    lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
+        self.parent.bind(    '<Control-o>', lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
+        self.parent.bind(    '<Control-p>', lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
         
-        self.confButton.bind('<Enter>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='RoyalBlue2'))
-        self.confButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='black'))
-        self.confButton.bind('<Button-1>', lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
+        self.confButton.bind('<Enter>',     lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='RoyalBlue2'))
+        self.confButton.bind('<Leave>',     lambda *args, **kwargs: self.iconDict['CONFIG'].configure(foreground='black'))
+        self.confButton.bind('<Button-1>',  lambda *args, **kwargs: self.showConfigWindow(*args, **kwargs))
         
-        self.loadButton.bind('<Enter>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='black')    if not self.tabs[self.notebook.select()].loaded else None)
-        self.loadButton.bind('<Leave>',    lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='lavender') if not self.tabs[self.notebook.select()].loaded else None)
-        self.loadButton.bind('<Button-1>', lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
+        self.loadButton.bind('<Enter>',     lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='black')    if not self.tabs[self.notebook.select()].loaded else None)
+        self.loadButton.bind('<Leave>',     lambda *args, **kwargs: self.tabs[self.notebook.select()].loadButton.configure(bg='lavender') if not self.tabs[self.notebook.select()].loaded else None)
+        self.loadButton.bind('<Button-1>',  lambda *args, **kwargs: self.tabs[self.notebook.select()].askLoad())
         
-        self.delButton.bind( '<Enter>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='red',   background=self.color))
-        self.delButton.bind( '<Leave>',    lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='black', background='light cyan'))
-        self.delButton.bind( '<Button-1>', lambda *args, **kwargs: self.delTab(*args, **kwargs))
+        self.delButton.bind( '<Enter>',     lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='red',   background=self.color))
+        self.delButton.bind( '<Leave>',     lambda *args, **kwargs: self.iconDict['DELETE'].configure(foreground='black', background='light cyan'))
+        self.delButton.bind( '<Button-1>',  lambda *args, **kwargs: self.delTab(*args, **kwargs))
         
         self.plotWindow = None
-        self.duppButton.bind('<Enter>',    lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='RoyalBlue2'))
-        self.duppButton.bind('<Leave>',    lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='black'))
-        self.duppButton.bind('<Button-1>', lambda *args, **kwargs: self.showPlotWindow())
+        self.duppButton.bind('<Enter>',     lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='RoyalBlue2'))
+        self.duppButton.bind('<Leave>',     lambda *args, **kwargs: self.iconDict['DUPPLICATE'].configure(background='black'))
+        self.duppButton.bind('<Button-1>',  lambda *args, **kwargs: self.showPlotWindow())
         
-        self.latScale.bind(  '<Enter>',    lambda *args, **kwargs: self.latScale.configure(highlightbackground='RoyalBlue2'))
-        self.latScale.bind(  '<Leave>',    lambda *args, **kwargs: self.latScale.configure(highlightbackground=self.color))
-        self.longScale.bind( '<Enter>',    lambda *args, **kwargs: self.longScale.configure(highlightbackground='RoyalBlue2'))
-        self.longScale.bind( '<Leave>',    lambda *args, **kwargs: self.longScale.configure(highlightbackground=self.color))
+        self.latScale.bind(  '<Enter>',     lambda *args, **kwargs: self.latScale.configure(highlightbackground='RoyalBlue2'))
+        self.latScale.bind(  '<Leave>',     lambda *args, **kwargs: self.latScale.configure(highlightbackground=self.color))
+        self.longScale.bind( '<Enter>',     lambda *args, **kwargs: self.longScale.configure(highlightbackground='RoyalBlue2'))
+        self.longScale.bind( '<Leave>',     lambda *args, **kwargs: self.longScale.configure(highlightbackground=self.color))
         
         self.notebook.bind(  '<<NotebookTabChanged>>', lambda *args, **kwargs: self.tabCghanged(*args, **kwargs))
                   
@@ -230,13 +230,14 @@ class mainApplication:
     def showConfigWindow(self, *args, **kwargs):
         '''Create or show back a configuration window to generate projections.'''
         
-        winProperties     = {'bg':'white smoke'}
-        entryProperties   = {'bg':'lavender', 'fg':'SpringGreen4'}
-        self.configWindow = ConfigWindow(self, self, self.parent, title='Projection facility',
-                                         winProperties=winProperties, entryProperties=entryProperties)
-        size              = (850, 550)
-        self.configWindow.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.parent.winfo_screenwidth()-size[0])//2, (self.parent.winfo_screenheight()-size[1])//2))
-            
+        if self.confButton['state'] != 'disabled':
+            winProperties     = {'bg':'white smoke'}
+            entryProperties   = {'bg':'lavender', 'fg':'SpringGreen4'}
+            self.configWindow = ConfigWindow(self, self, self.parent, title='Projection facility',
+                                             winProperties=winProperties, entryProperties=entryProperties)
+            size              = (850, 650)
+            self.configWindow.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.parent.winfo_screenwidth()-size[0])//2, (self.parent.winfo_screenheight()-size[1])//2))
+            self.confButton.configure(state=tk.DISABLED)
         
         return
        
