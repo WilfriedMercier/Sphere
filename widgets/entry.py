@@ -52,15 +52,18 @@ class Entry(tk.Entry):
         self.traceCommand      = traceCommand
         self.dtype             = dtype
         
+        # A flag which changes colors when equal to True
+        self.error             = False              
+        
         # Set default value of validate entry option
         if 'validate' not in kwargs:
-            kwargs['validate'] = 'key'
+            kwargs['validate']         = 'key'
             
         if 'validatecommand' in kwargs:
             kwargs.remove('validatecommand')
             
         if 'highligthcolor' not in kwargs:
-            kwargs['highlightcolor'] = 'RoyalBlue2'
+            kwargs['highlightcolor']   = 'RoyalBlue2'
             
         if 'selectbackground' not in kwargs:
             kwargs['selectbackground'] = 'cornflower blue'
@@ -76,6 +79,7 @@ class Entry(tk.Entry):
         
         self.bgColor             = self['bg']
         self.highlightbackground = self['highlightbackground']
+        self.errorhighlightcolor = self['errorhighlightcolor'] if 'errorhighlightcolor' in kwargs else 'firebrick1'
         self.buffer              = [self.value]
         
         # Binding trace command with buffer
@@ -154,17 +158,44 @@ class Entry(tk.Entry):
         return
     
     
+    #######################################################
+    #                Error state functions                #
+    #######################################################
+    
+    def removeError(self, *args, **kwargs):
+        '''Remove the error state.'''
+        
+        self.error                      = False 
+        
+        if self['state'] == 'normal':
+            self['highlightbackground'] = self.highlightbackground
+        if self['state']== 'focus':
+            self['highlightbackground'] = 'black'
+    
+    def triggerError(self, *args, **kwargs):
+        '''Modify the widget state to an error state.'''
+        
+        self.error                  = True
+        self['highlightbackground'] = self.errorhighlightcolor
+        return
+    
     ################################################
     #                Mouse hovering                #
     ################################################
     
     def onEntry(self, *args, **kwargs):
-        self['highlightbackground'] = 'black'
+        
+        if not self.error:
+            self['highlightbackground'] = 'black'
         return
     
     
     def outEntry(self, *args, **kwargs):
-        self['highlightbackground'] = self.highlightbackground
+        
+        if not self.error:
+            self['highlightbackground'] = self.highlightbackground
+        else:
+            self['highlightbackground'] = self.errorhighlightcolor
         return
     
     
