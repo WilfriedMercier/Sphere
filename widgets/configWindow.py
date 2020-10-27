@@ -90,6 +90,9 @@ class ConfigWindow(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self.close)
         self.title(self.name)
         
+        # Setup window size
+        size             = (850, 220)
+        self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
         
         ###################################
         #          Setup widgets          #
@@ -191,34 +194,29 @@ class ConfigWindow(tk.Toplevel):
         self.longMaxLabel = tk.Label( self.longMaxframe, text='Maximum longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         
         self.latMinScale  = tk.Scale( self.latMinframe, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
+                                     state=tk.DISABLED,
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.latMinScale, *args, **kwargs))
         
         self.latMaxScale  = tk.Scale( self.latMaxframe, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
+                                     state=tk.DISABLED,
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.latMaxScale, *args, **kwargs))
         
         
         self.longMinScale = tk.Scale( self.longMinframe, length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1,
-                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
+                                     state=tk.DISABLED,
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.longMinScale, *args, **kwargs))
         
         self.longMaxScale = tk.Scale( self.longMaxframe, length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1,
-                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
+                                     state=tk.DISABLED,
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.longMaxScale, *args, **kwargs))
-        
-        # Apply initial values for the scales and grey out widgets as long as no data is loaded
-        self.latMinScale.set( -90)
-        self.latMaxScale.set(  90)
-        self.longMinScale.set(-180)
-        self.longMaxScale.set( 180)
-        
-        self.latMinScale.configure(state=tk.DISABLED)
-        self.latMaxScale.configure(state='disabled')
         
         # Default position
         
@@ -229,13 +227,15 @@ class ConfigWindow(tk.Toplevel):
         self.dposLonLabel = tk.Label(self.dposLonFrame, text='Longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         
         self.dposLatScale = tk.Scale(self.dposLatFrame, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
+                                     state=tk.DISABLED,
                                      command=lambda *args, **kwargs: None)
         
         self.dposLonScale = tk.Scale(self.dposLonFrame, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='hand1', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor='lavender', activebackground='black',
+                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
+                                     state=tk.DISABLED,
                                      command=lambda *args, **kwargs: None)
         
         
@@ -461,13 +461,45 @@ class ConfigWindow(tk.Toplevel):
         '''Load the input file into the matplotlib frame and write its name into the entry widget.'''
         
         def okFunction(*args, **kwargs):
+            
+            # Change entry text color to ok 
             self.inputEntry.configure(fg=self.entryProperties['fg'])
+            
+            # Resize window
+            size = (850, 650)
+            self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
+            
+            # Update sliders
+            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonFrame]:
+                widget.configure(state='normal', cursor='hand1', troughcolor='lavender')
+                
+            self.latMinScale.set( -90)
+            self.latMaxScale.set(  90)
+            self.longMinScale.set(-180)
+            self.longMaxScale.set( 180)
+            self.dposLatScale.set( 0)
+            self.dposLonScale.set( 0)
+            
+            # Load graph onto the window
             self.makeGraph()
             return
         
         def errorFunction(*args, **kwargs):
+            
+            # Change entry text color to error
             self.inputEntry.configure(fg='firebrick1')
+            
+            # Hide graph in the windoq
             self.hideGraph()
+            
+            # Resize window
+            size = (850, 220)
+            self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
+            
+            # Update sliders
+            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonFrame]:
+                widget.configure(state='disabled', cursor='arrow', troughcolor=self.winProperties['bg'])
+                
             return
 
         # Retrieve name written in Entry
