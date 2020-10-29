@@ -244,8 +244,8 @@ class ConfigWindow(tk.Toplevel):
         #######################################################################
 
         # Buttons bindings
-        self.minButton.bind('   <Button-1>', lambda *args, **kwargs: self.decreaseThread(*args, **kwargs))
-        self.maxButton.bind('   <Button-1>', lambda *args, **kwargs: self.increaseThread(*args, **kwargs))
+        self.minButton.bind('   <Button-1>', lambda *args, **kwargs: self.decreaseThread(*args, **kwargs) if self.minButton['state'] != 'disabled' else None)
+        self.maxButton.bind('   <Button-1>', lambda *args, **kwargs: self.increaseThread(*args, **kwargs) if self.maxButton['state'] != 'disabled' else None)
         
         
         ##########################################################
@@ -388,16 +388,29 @@ class ConfigWindow(tk.Toplevel):
     #           Sliders interactions           #
     ############################################
     
+    def activateScaleError(self, widget, *args, **kwargs):
+        '''
+        Place the given scale widget in an error state.
+        
+        Parameters
+        ----------
+            widget : tkinter Scale widget
+                the widget to transform into error state
+        '''
+        
+        
+        return
+    
     def activateSliders(self, *args, **kwargs):
         '''Active all the scales in the window.'''
         
         # (Re)activate
-        self.latMinScale.configure(state=tk.NORMAL)
-        self.latMaxScale.configure(state=tk.NORMAL)
-        self.lonMinScale.configure(state=tk.NORMAL)
-        self.lonMaxScale.configure(state=tk.NORMAL)
-        self.dposLatScale.configure(state=tk.NORMAL)
-        self.dposLonScale.configure(state=tk.NORMAL)
+        self.latMinScale.configure( state='normal', cursor='hand1', troughcolor='lavender')
+        self.latMaxScale.configure( state='normal', cursor='hand1', troughcolor='lavender')
+        self.longMinScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
+        self.longMaxScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
+        self.dposLatScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
+        self.dposLonScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
         
         # Set (back) bindings
         self.latMinScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
@@ -435,6 +448,18 @@ class ConfigWindow(tk.Toplevel):
             
         return
     
+    def checkLatBounds(self, *args, **kwargs):
+        '''Check the minimum and maximum values of the latitude sliders.'''
+        
+        latMin = float(self.latMinScale.get())
+        latMax = float(self.latMaxScale.get())
+        
+        if latMin >= latMax:
+            self.error['latBounds'] = True
+            self.latMinScale.unb
+        else:
+            self.error['latBounds'] = False
+    
     
     #######################################
     #           Loading file(s)           #
@@ -467,11 +492,10 @@ class ConfigWindow(tk.Toplevel):
             
             # Resize window
             size = (850, 650)
-            self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
+            self.geometry('%dx%d' %(size[0], size[1]))
             
             # Update sliders
-            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonFrame]:
-                widget.configure(state='normal', cursor='hand1', troughcolor='lavender')
+            self.activateSliders()
                 
             self.latMinScale.set( -90)
             self.latMaxScale.set(  90)
@@ -494,10 +518,10 @@ class ConfigWindow(tk.Toplevel):
             
             # Resize window
             size = (850, 220)
-            self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
+            self.geometry('%dx%d' %(size[0], size[1]))
             
             # Update sliders
-            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonFrame]:
+            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonScale]:
                 widget.configure(state='disabled', cursor='arrow', troughcolor=self.winProperties['bg'])
                 
             return

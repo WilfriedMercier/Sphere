@@ -28,6 +28,8 @@ class Entry(tk.Entry):
 
         Mandatory parameters
         --------------------
+            main : tk object
+                object where the tab is created
             parent : tkinter widget
                 parent widget
             root : tkinter main window
