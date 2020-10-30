@@ -46,6 +46,11 @@ class mainApplication:
         self.settings, errCode = setup.init()
         self.font              = self.settings['font']
         self.loadPath          = self.settings['path']
+
+        # Check that given paths exist
+        if not opath.exists(self.loadPath) or not opath.exists(self.settings['iconPath']):
+            raise IOError('One of the path in the yaml configuration file does not exist.')
+
         icons                  = iconload(self.settings['iconPath'])
         projects               = self.settings['projects']
         

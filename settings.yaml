@@ -1,4 +1,4 @@
 font: fixed
-iconPath: /home/wilfried/Sphere/icons
+iconPath: ./icons
 path: ./
 projects: ['example/venus/venus.yaml']
