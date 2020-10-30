@@ -15,7 +15,8 @@ class Scale(tk.Scale):
     
     def __init__(self, parent, main, root, *args, 
                  enterFunc=lambda *args, **kwargs: None, leaveFunc=lambda *args, **kwargs: None,
-                 disable = False,
+                 disable = False, initValue=0,
+                 hoverParams={},
                  normalStateParams={},
                  errorStateParams={},
                  disabledStateParams={}, **kwargs):
@@ -39,6 +40,8 @@ class Scale(tk.Scale):
                 parameters to be passed to the Scale widget when the disabled state is trigerred
             errorStateParams : dict
                 parameters to be passed to the Scale widget when the error state is trigerred
+            hoverParams : dict
+                parameters to be passed to the Scale widget when the cursor is hovering over it
             normalStateParams : dict
                 parameters to be passed to the Scale widget when the normal state is trigerred
             **kwargs : other optional parameters
@@ -51,6 +54,10 @@ class Scale(tk.Scale):
         self.main                = main
         self.error               = False
         
+        self.enterFunc           = enterFunc
+        self.leaveFunc           = leaveFunc 
+        
+        self.hoverParams         = hoverParams
         self.normalStateParams   = normalStateParams
         self.errorStateParams    = errorStateParams
         self.disabledStateParams = disabledStateParams
@@ -65,13 +72,15 @@ class Scale(tk.Scale):
             if 'state' in dictionary:
                 dictionary.pop('state')
                 
-        if disable:
-            state = 'disabled'
-        else:
-            state = 'normal'
+        if not isinstance(initValue, (float, int)):
+            initValue = 0
         
         # Generate scale
         super().__init__(self.parent, *args, **kwargs)
+        self.set(initValue)
+        
+        if disable:
+            self.disabledState()
         
     
     ##########################################
@@ -80,10 +89,39 @@ class Scale(tk.Scale):
         
     def enterBinding(self, *args, **kwargs):
         '''Actions taken when the cursor enters the widget.'''
+        
+        self.configure(**self.hoverParams)
+        return self.enterFunc(*args, **kwargs)
+    
+    def leaveBinding(self, *args, **kwargs):
+        '''Actions taken when the cursor leaves the widget.'''
+        
+        self.configure(**self.normalStateParams)
+        return self.leaveFunc(*args, **kwargs)
+        
     
     ###########################################
     #              State methods              #
     ###########################################
+    
+    def disabledState(self, *args, **kwargs):
+        '''Change the widget into a disabled state.'''
+        
+        self.configure(state='disabled', **self.disabledStateParams)
+        self.unbind('<Enter>')
+        self.unbind('<Leave>')
+        return
+    
+    def errorState(self, *args, **kwargs):
+        '''Change the widget into an error state.'''
+        
+        # Enable the widget and change its appearance
+        self.configure(state='normal', **self.errorStateParams)
+
+        # Replace old bindings with just the user function
+        self.bind('<Enter>',    lambda *args, **kwargs: self.enterFunc(*args, **kwargs))
+        self.bind('<Leave>',    lambda *args, **kwargs: self.leaveFunc(*args, **kwargs))
+        return
         
     def normalState(self, *args, **kwargs):
         '''Change the widget into normal (activated) state.'''
@@ -91,12 +129,10 @@ class Scale(tk.Scale):
         # Enable the widget and change its appearance
         self.configure(state='normal', **self.normalStateParams)
         
-        self.bind( '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.bind( '<Leave>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground=self.winProperties['bg']))
+        # Enable the default bindings
+        self.bind('<Enter>',    lambda *args, **kwargs: self.enterBinding(*args, **kwargs))
+        self.bind('<Leave>',    lambda *args, **kwargs: self.leaveBinding(*args, **kwargs))
         return
-
-
-
 
 
 

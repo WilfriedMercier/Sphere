@@ -15,6 +15,7 @@ from   tkinter.filedialog                import askopenfilename
 from   matplotlib.figure                 import Figure
 from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from   .entry                            import Entry
+from   .scale                            import Scale
 
 class ConfigWindow(tk.Toplevel):
     '''Configuration window to generate new projections.'''
@@ -93,6 +94,15 @@ class ConfigWindow(tk.Toplevel):
         # Setup window size
         size             = (850, 220)
         self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
+        
+        ########################################
+        #           Scale properties           #
+        ########################################
+        
+        hoverParams   = {'highlightbackground':'RoyalBlue2',     'activebackground':'RoyalBlue2'}
+        normalState   = {'troughcolor':'lavender',               'highlightbackground':self.winProperties['bg'], 'cursor':'hand1', 'activebackground':'black'}
+        errorState    = {'troughcolor':'lavender',               'highlightbackground':'firebrick1',             'cursor':'arrow', 'activebackground':'black'}
+        disabledState = {'troughcolor':self.winProperties['bg'], 'highlightbackground':self.winProperties['bg'], 'cursor':'arrow', 'activebackground':'black'}
         
         ###################################
         #          Setup widgets          #
@@ -193,50 +203,50 @@ class ConfigWindow(tk.Toplevel):
         self.longMinLabel = tk.Label( self.longMinframe, text='Minimum longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         self.longMaxLabel = tk.Label( self.longMaxframe, text='Maximum longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         
-        self.latMinScale  = tk.Scale( self.latMinframe, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
-                                     state=tk.DISABLED,
+        self.latMinScale  = Scale(   self.latMinframe, self, self.root, disable=True, initValue=-90,
+                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
+                                     length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.latMinScale, *args, **kwargs))
         
-        self.latMaxScale  = tk.Scale( self.latMaxframe, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
-                                     state=tk.DISABLED,
+        self.latMaxScale  = Scale(   self.latMaxframe, self, self.root, disable=True, initValue=90,
+                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState, 
+                                     length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.latMaxScale, *args, **kwargs))
         
         
-        self.longMinScale = tk.Scale( self.longMinframe, length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1,
-                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
-                                     state=tk.DISABLED,
+        self.longMinScale = Scale(   self.longMinframe, self, self.root, disable=True, initValue=-180,
+                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
+                                     length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.longMinScale, *args, **kwargs))
         
-        self.longMaxScale = tk.Scale( self.longMaxframe, length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1,
-                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
-                                     state=tk.DISABLED,
+        self.longMaxScale = Scale(   self.longMaxframe, self, self.root, disable=True, initValue=180,
+                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
+                                     length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.longMaxScale, *args, **kwargs))
         
         # Default position
         
-        self.dposLatFrame = tk.Frame(     self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        self.dposLonFrame = tk.Frame(     self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.dposLatFrame = tk.Frame(self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.dposLonFrame = tk.Frame(self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         
         self.dposLatLabel = tk.Label(self.dposLatFrame, text='Latitude',  bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         self.dposLonLabel = tk.Label(self.dposLonFrame, text='Longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
         
-        self.dposLatScale = tk.Scale(self.dposLatFrame, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
-                                     state=tk.DISABLED,
-                                     command=lambda *args, **kwargs: None)
+        self.dposLatScale = Scale(   self.dposLatFrame, self, self.root, disable=True, initValue=0,
+                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
+                                     length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
+                                     command=lambda *args, **kwargs: self.sliderUpdate(self.dposLatScale, *args, **kwargs))
         
-        self.dposLonScale = tk.Scale(self.dposLonFrame, length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1,
-                                     cursor='arrow', showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'], activebackground='black',
-                                     state=tk.DISABLED,
-                                     command=lambda *args, **kwargs: None)
+        self.dposLonScale = Scale(   self.dposLonFrame, self, self.root, disable=True, initValue=0,
+                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
+                                     length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
+                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
+                                     command=lambda *args, **kwargs: self.sliderUpdate(self.dposLonScale, *args, **kwargs))
         
         
         #######################################################################
@@ -388,63 +398,23 @@ class ConfigWindow(tk.Toplevel):
     #           Sliders interactions           #
     ############################################
     
-    def activateScaleError(self, widget, *args, **kwargs):
-        '''
-        Place the given scale widget in an error state.
-        
-        Parameters
-        ----------
-            widget : tkinter Scale widget
-                the widget to transform into error state
-        '''
-        
-        
-        return
-    
-    def activateSliders(self, *args, **kwargs):
-        '''Active all the scales in the window.'''
-        
-        # (Re)activate
-        self.latMinScale.configure( state='normal', cursor='hand1', troughcolor='lavender')
-        self.latMaxScale.configure( state='normal', cursor='hand1', troughcolor='lavender')
-        self.longMinScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
-        self.longMaxScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
-        self.dposLatScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
-        self.dposLonScale.configure(state='normal', cursor='hand1', troughcolor='lavender')
-        
-        # Set (back) bindings
-        self.latMinScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.latMinScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMinScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.latMaxScale.bind( '<Enter>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground='RoyalBlue2'))
-        self.latMaxScale.bind( '<Leave>',    lambda *args, **kwargs: self.latMaxScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.longMinScale.bind('<Enter>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground='RoyalBlue2'))
-        self.longMinScale.bind('<Leave>',    lambda *args, **kwargs: self.longMinScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.longMaxScale.bind('<Enter>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground='RoyalBlue2'))
-        self.longMaxScale.bind('<Leave>',    lambda *args, **kwargs: self.longMaxScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.dposLatScale.bind('<Enter>',    lambda *args, **kwargs: self.dposLatScale.configure(highlightbackground='RoyalBlue2'))
-        self.dposLatScale.bind('<Leave>',    lambda *args, **kwargs: self.dposLatScale.configure(highlightbackground=self.winProperties['bg']))
-        
-        self.dposLonScale.bind('<Enter>',    lambda *args, **kwargs: self.dposLonScale.configure(highlightbackground='RoyalBlue2'))
-        self.dposLonScale.bind('<Leave>',    lambda *args, **kwargs: self.dposLonScale.configure(highlightbackground=self.winProperties['bg']))
-        
-    
     def sliderUpdate(self, slider, *args, **kwargs):
         '''Actions taken when the slider is updated.'''
         
         value = slider.get()
         
-        if slider is self.latMinScale:
-            self.latMinLabel.configure(text='Minimum latitude: %.1f°' %value)
+        if   slider is self.latMinScale:
+            self.latMinLabel.configure(text='Minimum latitude: %.1f°'   %value)
         elif slider is self.latMaxScale:
-            self.latMaxLabel.configure(text='Maximum latitude: %.1f°' %value)
+            self.latMaxLabel.configure(text='Maximum latitude: %.1f°'   %value)
         elif slider is self.longMinScale:
             self.longMinLabel.configure(text='Minimum longitude: %.1f°' %value)
         elif slider is self.longMaxScale:
             self.longMaxLabel.configure(text='Maximum longitude: %.1f°' %value)
+        elif slider is self.dposLatScale:
+            self.dposLatLabel.configure(text='Latitude: %.1f°'          %value)
+        elif slider is self.dposLonScale:
+            self.dposLonLabel.configure(text='Longitude: %.1f°'         %value)
             
         return
     
@@ -495,14 +465,8 @@ class ConfigWindow(tk.Toplevel):
             self.geometry('%dx%d' %(size[0], size[1]))
             
             # Update sliders
-            self.activateSliders()
-                
-            self.latMinScale.set( -90)
-            self.latMaxScale.set(  90)
-            self.longMinScale.set(-180)
-            self.longMaxScale.set( 180)
-            self.dposLatScale.set( 0)
-            self.dposLonScale.set( 0)
+            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonScale]:
+                widget.normalState()
             
             # Load graph onto the window
             self.makeGraph()
@@ -522,7 +486,7 @@ class ConfigWindow(tk.Toplevel):
             
             # Update sliders
             for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonScale]:
-                widget.configure(state='disabled', cursor='arrow', troughcolor=self.winProperties['bg'])
+                widget.disabledState()
                 
             return
 
