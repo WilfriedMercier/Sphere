@@ -63,6 +63,10 @@ class ConfigWindow(tk.Toplevel):
         self.data            = None
         self.canvas          = None
         self.crosshair       = None
+        self.latMinLine      = None
+        self.latMaxLine      = None
+        self.longMinLine     = None
+        self.longMaxLine     = None
         
         # Allowed file types and file extensions when loading the image
         self.filetypes       = [('PNG', '*.png'), ('JEPG', '*.jpeg'), ('JPG', '*.jpg'), ('GIF', '*.gif')]
@@ -591,6 +595,26 @@ class ConfigWindow(tk.Toplevel):
         self.setAxis()
         return
     
+    def updateBounds(self, widget, *args, **kwargs):
+        '''
+        Update on the graph the latitude and longitude bounds given with the sliders.
+
+        Parameters
+        ----------
+            widget : own Scale widget
+                the slider object correponding to the bound beeing updated
+        '''
+        
+        if   widget is self.latMinScale:
+            self.updateLine(self.latMinLine, float(self.latMinScale.get()))
+        elif widget is self.latMaxScale:
+            self.updateLine(self.latMaxLine, float(self.latMaxScale.get()))
+        elif widget is self.longMinScale:
+            self.updateLine(self.longMinLine, float(self.longMinScale.get()))
+        elif widget is self.longMaxScale:
+            self.updateLine(self.longMaxLine, float(self.longMaxScale.get()))
+        return
+    
     def updateCrosshair(self, *args, **kwargs):
         '''Update the crosshair.'''
         
@@ -606,7 +630,45 @@ class ConfigWindow(tk.Toplevel):
             
             self.canvas.draw_idle()
         return
+    
+    def updateLine(self, line, val, which='x', *args, **kwargs):
+        '''
+        Update on the graph the latitude and longitude bounds given with the sliders.
 
+        Mandatory parameters
+        --------------------
+            line : matplotlib plot object
+                line object to be updated
+            val : float/int
+                value in plot units where to place the line
+                
+        Optional parameters
+        -------------------
+            which : 'x' or 'y'
+                which direction (x or y) to update the data
+        '''
+        
+        if which not in ['x', 'y']:
+            raise ValueError('which parameter in updateLine function must either "x" or "y".')
+        
+        if self.data is not None:
+            
+            # Setup the data the correct way depending on the orientation of the line
+            if which == 'x':
+                xdata = self.xlim
+                ydata = [val, val]
+            else:
+                xdata = [val, val]
+                ydata = self.ylim
+            
+            if line is None:
+                line = self.ax.plot(xdata, ydata, linestyle='--', linewidth=5)
+            else:
+                line.set_xdata(xdata)
+                line.set_ydata(ydata)
+            
+        return
+        
     def setAxis(self, *args, **kwargs):
         '''Set the axis for a new figure.'''
         
