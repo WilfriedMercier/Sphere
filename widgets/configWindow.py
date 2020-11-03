@@ -62,6 +62,7 @@ class ConfigWindow(tk.Toplevel):
         # Attributes related to the matplotlib graph
         self.data            = None
         self.canvas          = None
+        self.crosshair       = None
         
         # Allowed file types and file extensions when loading the image
         self.filetypes       = [('PNG', '*.png'), ('JEPG', '*.jpeg'), ('JPG', '*.jpg'), ('GIF', '*.gif')]
@@ -100,8 +101,8 @@ class ConfigWindow(tk.Toplevel):
         ########################################
         
         hoverParams   = {'highlightbackground':'RoyalBlue2',     'activebackground':'RoyalBlue2'}
-        normalState   = {'troughcolor':'lavender',               'highlightbackground':self.winProperties['bg'], 'cursor':'hand1', 'activebackground':'black'}
-        errorState    = {'troughcolor':'lavender',               'highlightbackground':'firebrick1',             'cursor':'arrow', 'activebackground':'black'}
+        normalState   = {'troughcolor':'lavender',               'highlightbackground':self.winProperties['bg'], 'cursor':'hand1', 'activebackground':'RoyalBlue2'}
+        errorState    = {'troughcolor':'lavender',               'highlightbackground':'firebrick1',             'cursor':'hand1', 'activebackground':'black'}
         disabledState = {'troughcolor':self.winProperties['bg'], 'highlightbackground':self.winProperties['bg'], 'cursor':'arrow', 'activebackground':'black'}
         
         ###################################
@@ -241,13 +242,14 @@ class ConfigWindow(tk.Toplevel):
                                      length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
                                      bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.dposLatScale, *args, **kwargs))
+        self.sliderUpdate(self.dposLatScale)
         
         self.dposLonScale = Scale(   self.dposLonFrame, self, self.root, disable=True, initValue=0,
                                      hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
                                      length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
                                      bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
                                      command=lambda *args, **kwargs: self.sliderUpdate(self.dposLonScale, *args, **kwargs))
-        
+        self.sliderUpdate(self.dposLonScale)
         
         #######################################################################
         #                               Bindings                              #
@@ -404,32 +406,95 @@ class ConfigWindow(tk.Toplevel):
         value = slider.get()
         
         if   slider is self.latMinScale:
+            cbounds = self.checkBounds(self.latMinScale, self.latMaxScale)
+            if cbounds is None:
+                pass
+            elif not cbounds:
+                self.latMinLabel.configure(fg='firebrick1')
+                self.latMaxLabel.configure(fg='firebrick1')
+            else:
+                self.latMinLabel.configure(fg='black')
+                self.latMaxLabel.configure(fg='black')
+                
             self.latMinLabel.configure(text='Minimum latitude: %.1f°'   %value)
+                
         elif slider is self.latMaxScale:
+            cbounds = self.checkBounds(self.latMinScale, self.latMaxScale)
+            if cbounds is None:
+                pass
+            elif not cbounds:
+                self.latMinLabel.configure(fg='firebrick1')
+                self.latMaxLabel.configure(fg='firebrick1')
+            else:
+                self.latMinLabel.configure(fg='black')
+                self.latMaxLabel.configure(fg='black')
+                
             self.latMaxLabel.configure(text='Maximum latitude: %.1f°'   %value)
+                
         elif slider is self.longMinScale:
+            cbounds = self.checkBounds(self.longMinScale, self.longMaxScale)
+            if cbounds is None:
+                pass
+            elif not cbounds:
+                self.longMinLabel.configure(fg='firebrick1')
+                self.longMaxLabel.configure(fg='firebrick1')
+            else:
+                self.longMinLabel.configure(fg='black')
+                self.longMaxLabel.configure(fg='black')
+            
             self.longMinLabel.configure(text='Minimum longitude: %.1f°' %value)
+                
         elif slider is self.longMaxScale:
+            cbounds = self.checkBounds(self.longMinScale, self.longMaxScale)
+            if cbounds is None:
+                pass
+            elif not cbounds:
+                self.longMinLabel.configure(fg='firebrick1')
+                self.longMaxLabel.configure(fg='firebrick1')
+            else:
+                self.longMinLabel.configure(fg='black')
+                self.longMaxLabel.configure(fg='black')
+                    
             self.longMaxLabel.configure(text='Maximum longitude: %.1f°' %value)
+                
         elif slider is self.dposLatScale:
-            self.dposLatLabel.configure(text='Latitude: %.1f°'          %value)
+            self.dposLatLabel.configure(text='Latitude: %.1f°'              %value)
+            self.updateCrosshair()            
+                
         elif slider is self.dposLonScale:
-            self.dposLonLabel.configure(text='Longitude: %.1f°'         %value)
+            self.dposLonLabel.configure(text='Longitude: %.1f°'             %value)
+            self.updateCrosshair()
             
         return
     
-    def checkLatBounds(self, *args, **kwargs):
-        '''Check the minimum and maximum values of the latitude sliders.'''
+    def checkBounds(self, scaleMin, scaleMax, *args, **kwargs):
+        '''
+        Check the minimum and maximum values of the latitude sliders.
         
-        latMin = float(self.latMinScale.get())
-        latMax = float(self.latMaxScale.get())
+        Parameters
+        ----------
+            scaleMin : own Scale widget
+                scale considered to contain the minimum value of both
+            scaleMax : own Scale widget
+                scale considered to contain the maximum value of both
+        '''
+        
+        # If one of the latitude sliders is disabled, no check is performed
+        if 'disabled' in [scaleMin['state'], scaleMax['state']]:
+            return None
+        
+        latMin = float(scaleMin.get())
+        latMax = float(scaleMax.get())
         
         if latMin >= latMax:
-            self.error['latBounds'] = True
-            self.latMinScale.unb
+            scaleMin.errorState()
+            scaleMax.errorState()
+            return False
         else:
-            self.error['latBounds'] = False
-    
+            scaleMin.normalState()
+            scaleMax.normalState()
+        
+        return True
     
     #######################################
     #           Loading file(s)           #
@@ -525,6 +590,22 @@ class ConfigWindow(tk.Toplevel):
         
         self.setAxis()
         return
+    
+    def updateCrosshair(self, *args, **kwargs):
+        '''Update the crosshair.'''
+        
+        if self.data is not None:
+
+            xpos = self.xlim[0] + (float(self.dposLonScale.get()) + 180)/360 * (self.xlim[1] - self.xlim[0])
+            ypos = self.ylim[1] - (float(self.dposLatScale.get()) + 90 )/180 * (self.ylim[1] - self.ylim[0])
+            if self.crosshair is None:
+                self.crosshair = self.ax.plot([xpos], [ypos], marker='x', markersize=15, color='black', markeredgewidth=5)[0]
+            else:
+                self.crosshair.set_xdata([xpos])
+                self.crosshair.set_ydata([ypos])
+            
+            self.canvas.draw_idle()
+        return
 
     def setAxis(self, *args, **kwargs):
         '''Set the axis for a new figure.'''
@@ -556,6 +637,7 @@ class ConfigWindow(tk.Toplevel):
         '''Hide the graph frame if no data is loaded.'''
         
         if self.canvas is not None:
+            self.crosshair = None
             self.figframe.pack_forget()
         return
     
@@ -582,6 +664,9 @@ class ConfigWindow(tk.Toplevel):
         # Draw frame containing the figure
         self.canvas.draw()
         self.figframe.pack(side=tk.BOTTOM, fill='x', expand=True)
+        
+        # Set crosshair
+        self.updateCrosshair()
 
         return
         

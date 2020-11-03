@@ -8,6 +8,7 @@ Created on 03/10/2020
 Software to manipulate projections for the sphere orb.
 """
 
+import sys
 import multiprocessing
 import matplotlib
 matplotlib.use('TkAgg')
@@ -351,23 +352,39 @@ class runMainloop(Thread):
         self.root.geometry('800x800+%d+%d' %(self.root.winfo_screenwidth()//2-400, self.root.winfo_screenheight()//2-400))
         
         app  = mainApplication(self.root)
-        
         self.root.protocol("WM_DELETE_WINDOW", lambda signal=SIGINT, frame=None, obj=self, skipUpdate=True: sigintHandler(signal, obj, None, skipUpdate))
-        
-        #imgicon = ImageTk.PhotoImage(PROGRAMICON)
-        #self.root.tk.call('wm', 'iconphoto', self.root._w, imgicon)
-        
         self.root.mainloop()
+        
+def runMainLoopMac(*args, **kwargs):
+    '''A temporary function to disable the Ctrl+C function from another thread working on linux platforms but not on MAC OS.'''
+
+    root = tk.Tk()
+    root.title('Sphere - projections at hand')
+    root.geometry('800x800+%d+%d' %(root.winfo_screenwidth()//2-400, root.winfo_screenheight()//2-400))
+    
+    app  = mainApplication(root)
+    root.protocol("WM_DELETE_WINDOW", lambda signal=SIGINT, frame=None, root=root, obj=None, skipUpdate=True: sigintHandler(signal, obj, root, skipUpdate))
+    root.mainloop()
+    
+    return root
 
 
 def main():
     
-    mainLoop = runMainloop()
+    platform = sys.platform
     
-    # Link Ctrl+C keystroke in shell to terminating window
-    signal(SIGINT, lambda signal, frame, obj=mainLoop, root=None, skipUpdate=False: sigintHandler(signal, obj, root, skipUpdate))
-
-    mainLoop.start()
-
+    if platform == 'darwin':
+        root = runMainLoopMac()
+        
+        # Link Ctrl+C keystroke in shell to terminating window (window focus needs to be given on mac for this to work)
+        signal(SIGINT, lambda signal, frame, obj=None, root=root, skipUpdate=False: sigintHandler(signal, obj, root, skipUpdate))
+        
+    else:
+        mainLoop = runMainloop()
+        
+        # Link Ctrl+C keystroke in shell to terminating window
+        signal(SIGINT, lambda signal, frame, obj=mainLoop, root=None, skipUpdate=False: sigintHandler(signal, obj, root, skipUpdate))
+        mainLoop.start()
+    
 if __name__ == '__main__':
     main()

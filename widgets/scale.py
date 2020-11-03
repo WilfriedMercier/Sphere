@@ -107,6 +107,8 @@ class Scale(tk.Scale):
     def disabledState(self, *args, **kwargs):
         '''Change the widget into a disabled state.'''
         
+        self.error = True
+        
         self.configure(state='disabled', **self.disabledStateParams)
         self.unbind('<Enter>')
         self.unbind('<Leave>')
@@ -114,6 +116,8 @@ class Scale(tk.Scale):
     
     def errorState(self, *args, **kwargs):
         '''Change the widget into an error state.'''
+        
+        self.error = True
         
         # Enable the widget and change its appearance
         self.configure(state='normal', **self.errorStateParams)
@@ -125,6 +129,8 @@ class Scale(tk.Scale):
         
     def normalState(self, *args, **kwargs):
         '''Change the widget into normal (activated) state.'''
+        
+        self.error = False
 
         # Enable the widget and change its appearance
         self.configure(state='normal', **self.normalStateParams)
