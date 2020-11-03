@@ -38,4 +38,10 @@ Obviously python3, one of the latest versions would be preferable. glob, tkinter
 
 The code + icons are actually quite light weight. Most of the size comes from the example, which for the moment is mandatory if you want to try this software, but will not in future versions. So hopefully, the example will be moved somewhere else and this project will be much less heavy than it is now.
 
+## Caveats
+
 __This software has only been tested on an Ubuntu 20.04.1 machine.__
+
+A couple of tests were performed on a MAC OSX machine. The threading used to catch SIGINT does not work properly on MAC and is therefore disabled for now. Plenty of issues appear when running this software on a MAC OSX machine. These shall be dealt with once the bulge of the code has been completed. 
+
+Tests on a windows machine should arrive soon as well.
