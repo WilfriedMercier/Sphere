@@ -420,6 +420,9 @@ class ConfigWindow(tk.Toplevel):
                 self.latMinLabel.configure(fg='black')
                 self.latMaxLabel.configure(fg='black')
                 
+                # Update graph bound line
+                self.updateBounds(self.latMinScale)
+                
             self.latMinLabel.configure(text='Minimum latitude: %.1f°'   %value)
                 
         elif slider is self.latMaxScale:
@@ -433,6 +436,9 @@ class ConfigWindow(tk.Toplevel):
                 self.latMinLabel.configure(fg='black')
                 self.latMaxLabel.configure(fg='black')
                 
+                # Update graph bound line
+                self.updateBounds(self.latMaxScale)
+                
             self.latMaxLabel.configure(text='Maximum latitude: %.1f°'   %value)
                 
         elif slider is self.longMinScale:
@@ -445,6 +451,9 @@ class ConfigWindow(tk.Toplevel):
             else:
                 self.longMinLabel.configure(fg='black')
                 self.longMaxLabel.configure(fg='black')
+                
+                # Update graph bound line
+                self.updateBounds(self.longMinScale)
             
             self.longMinLabel.configure(text='Minimum longitude: %.1f°' %value)
                 
@@ -458,6 +467,9 @@ class ConfigWindow(tk.Toplevel):
             else:
                 self.longMinLabel.configure(fg='black')
                 self.longMaxLabel.configure(fg='black')
+                
+                # Update graph bound line
+                self.updateBounds(self.longMaxScale)
                     
             self.longMaxLabel.configure(text='Maximum longitude: %.1f°' %value)
                 
@@ -606,13 +618,13 @@ class ConfigWindow(tk.Toplevel):
         '''
         
         if   widget is self.latMinScale:
-            self.updateLine(self.latMinLine, float(self.latMinScale.get()))
+            self.latMinLine  = self.updateLine(self.latMinLine,  float(self.latMinScale.get()),  which='x')
         elif widget is self.latMaxScale:
-            self.updateLine(self.latMaxLine, float(self.latMaxScale.get()))
+            self.latMaxLine  = self.updateLine(self.latMaxLine,  float(self.latMaxScale.get()),  which='x')
         elif widget is self.longMinScale:
-            self.updateLine(self.longMinLine, float(self.longMinScale.get()))
+            self.longMinLine = self.updateLine(self.longMinLine, float(self.longMinScale.get()), which='y')
         elif widget is self.longMaxScale:
-            self.updateLine(self.longMaxLine, float(self.longMaxScale.get()))
+            self.longMaxLine = self.updateLine(self.longMaxLine, float(self.longMaxScale.get()), which='y')
         return
     
     def updateCrosshair(self, *args, **kwargs):
@@ -646,6 +658,8 @@ class ConfigWindow(tk.Toplevel):
         -------------------
             which : 'x' or 'y'
                 which direction (x or y) to update the data
+                
+        Return the matplotlib line object.
         '''
         
         if which not in ['x', 'y']:
@@ -656,18 +670,22 @@ class ConfigWindow(tk.Toplevel):
             # Setup the data the correct way depending on the orientation of the line
             if which == 'x':
                 xdata = self.xlim
+                val   = self.ylim[1] - (val + 90 )/180 * (self.ylim[1] - self.ylim[0])
                 ydata = [val, val]
             else:
+                val   = self.xlim[0] + (val + 180)/360 * (self.xlim[1] - self.xlim[0])
                 xdata = [val, val]
                 ydata = self.ylim
             
             if line is None:
-                line = self.ax.plot(xdata, ydata, linestyle='--', linewidth=5)
+                line = self.ax.plot(xdata, ydata, linestyle='--', linewidth=1, color='black')[0]
             else:
                 line.set_xdata(xdata)
                 line.set_ydata(ydata)
+                
+            self.canvas.draw_idle()
             
-        return
+        return line
         
     def setAxis(self, *args, **kwargs):
         '''Set the axis for a new figure.'''
