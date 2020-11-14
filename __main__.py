@@ -120,6 +120,7 @@ class mainApplication:
         self.iconDict['DELETE']     = tk.BitmapImage(data=icons['DELETE'],     maskdata=icons['DELETE_MASK'],     background='light cyan', foreground='black')
         self.iconDict['DUPPLICATE'] = tk.BitmapImage(data=icons['DUPPLICATE'], maskdata=icons['DUPPLICATE_MASK'], background='black',      foreground='black')
         self.iconDict['CONFIG']     = tk.BitmapImage(data=icons['CONFIG'],     maskdata=icons['CONFIG_MASK'],     background=self.color,   foreground='black') 
+        self.iconDict['RUN']        = tk.BitmapImage(data=icons['RUN'],        maskdata=icons['RUN_MASK'],        background='firebrick4', foreground='black') 
         
         
         #############################################

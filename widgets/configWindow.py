@@ -194,6 +194,27 @@ class ConfigWindow(tk.Toplevel):
                                      traceCommand=lambda *args, **kwargs: self.updateThreadValue(*args, **kwargs))
         self.threadEntry.configure(fg='black')
         
+        '''
+        Longitude and latitude steps widgets
+        ------------------------------------
+            self.stepAll      : frame for all the step widgets
+            self.stepLblFrame : frame for the label of the step widgets
+            self.stepFrame    : frame for the entry of the step widgets
+        '''
+        
+        self.stepAll      = tk.Frame( self.line2col2,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
+        self.stepLblFrame = tk.Frame( self.stepAll,      bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.stepLabel    = tk.Label( self.stepLblFrame, bg=self.winProperties['bg'], text='Step (°)', font=(self.main.font, 10), anchor=tk.W)
+        
+        self.stepFrame    = tk.Frame( self.stepAll,      bg=self.winProperties['bg'],  bd=0, highlightthickness=0)
+        self.stepEntry    = Entry(    self.stepFrame, self, self.root, dtype=float, defaultValue=1, width=3, justify=tk.CENTER, **entryProperties,
+                                      traceCommand=lambda *args, **kwargs: self.updateThreadValue(*args, **kwargs))
+        
+        # Run widgets
+        self.runButton    = tk.Button(self.line2col2,    bg=self.winProperties['bg'],  bd=0, image=self.parent.iconDict['RUN'],
+                                      highlightthickness=0, highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground=self.winProperties['bg'])
+        
         # Latitude and longitude limits widgets
         
         self.latMinframe  = tk.Frame( self.boundFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
@@ -280,7 +301,7 @@ class ConfigWindow(tk.Toplevel):
         self.inputEntry.pack( side=tk.LEFT,   fill='x', expand=True)
         self.inputButton.pack(side=tk.RIGHT,            padx=10)
         self.inputFrame2.pack(side=tk.BOTTOM, fill='x', expand=True)
-        self.inputFrame.pack( side=tk.TOP,    fill='x', padx=10, )
+        self.inputFrame.pack( side=tk.TOP,    fill='x', padx=10)
         
         # Thread widgets
         self.threadLabel.pack(side=tk.LEFT)
@@ -291,7 +312,17 @@ class ConfigWindow(tk.Toplevel):
         
         self.thLablFrame.pack(side=tk.TOP)
         self.threadFrame.pack(side=tk.BOTTOM)
-        self.threadAll.pack(  side=tk.LEFT, padx=10, anchor=tk.S+tk.W)
+        self.threadAll.pack(  side=tk.LEFT, padx=10, anchor=tk.N+tk.W)
+        
+        # Step widgets
+        self.stepLabel.pack(   side=tk.LEFT)
+        self.stepEntry.pack(   side=tk.BOTTOM, pady=5)
+        self.stepLblFrame.pack(side=tk.TOP)
+        self.stepFrame.pack(   side=tk.BOTTOM)
+        self.stepAll.pack(     side=tk.LEFT, padx=10, anchor=tk.N+tk.E)
+        
+        # Run widget
+        self.runButton.pack(   side=tk.RIGHT, padx=10, anchor=tk.CENTER)
         
         # Lat and long bounds widgets
         self.latMinLabel.pack( side=tk.TOP,    fill='x', expand=True)
