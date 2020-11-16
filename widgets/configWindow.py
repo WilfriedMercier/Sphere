@@ -52,7 +52,16 @@ class ConfigWindow(tk.Toplevel):
         self.name            = title
         
         # Dictionnary with flags to know when a value is incorrect before launching the projection routine
-        self.error           = {'thread':False}
+        self.error           = {'thread'        : False, 
+                                'latitudeMin'   : False,
+                                'latitudeMax'   : False,
+                                'longitudeMin'  : False,
+                                'longitudeMax'  : False,
+                                'latitudeInit'  : False,
+                                'longitudeInit' : False,
+                                'step'          : False,
+                                'inputFile'     : True,
+                                'projectName'   : True}
         
         # Layout properties
         self.winProperties   = winProperties
@@ -281,8 +290,8 @@ class ConfigWindow(tk.Toplevel):
         #######################################################################
 
         # Buttons bindings
-        self.minButton.bind('   <Button-1>', lambda *args, **kwargs: self.decreaseThread(*args, **kwargs) if self.minButton['state'] != 'disabled' else None)
-        self.maxButton.bind('   <Button-1>', lambda *args, **kwargs: self.increaseThread(*args, **kwargs) if self.maxButton['state'] != 'disabled' else None)
+        self.minButton.bind('<Button-1>', lambda *args, **kwargs: self.decreaseThread(*args, **kwargs) if self.minButton['state'] != 'disabled' else None)
+        self.maxButton.bind('<Button-1>', lambda *args, **kwargs: self.increaseThread(*args, **kwargs) if self.maxButton['state'] != 'disabled' else None)
         
         
         ##########################################################
@@ -323,6 +332,7 @@ class ConfigWindow(tk.Toplevel):
         
         # Run widget
         self.runButton.pack(   side=tk.RIGHT, padx=10, anchor=tk.CENTER)
+        self.runButton.config(state=tk.DISABLED)
         
         # Lat and long bounds widgets
         self.latMinLabel.pack( side=tk.TOP,    fill='x', expand=True)
@@ -609,6 +619,7 @@ class ConfigWindow(tk.Toplevel):
         if fname == '':
             self.inputEntry.configure(fg=self.entryProperties['fg'])
             errorFunction()
+            self.checkRun()
             return
         
         # If no file was selected or if an error occured, do nothing
@@ -618,6 +629,7 @@ class ConfigWindow(tk.Toplevel):
         # Otherwise check whether the file exists and apply the correct function
         else:
             self.checkFile(fname, okFunction=okFunction, errorFunction=errorFunction)
+            self.checkRun()
         return
         
 
@@ -819,6 +831,19 @@ class ConfigWindow(tk.Toplevel):
             return okFunction()
         else:
             return errorFunction()
+        return
+    
+    def checkRun(self, *args, **kwargs):
+        '''Check whether the projection can be run or not.'''
+        
+        if any(self.error.values()):
+            self.runButton.configure(state=tk.DISABLED)
+            self.runButton.unbind('<Enter>')
+            self.runButton.unbind('<Leave>')
+        else:
+            self.runButton.configure(state=tk.NORMAL)
+            self.runButton.bind('<Enter>',    lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='black'))
+            self.runButton.bind('<Leave>',    lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='white'))
         return
 
     def setTitle(self, title, *args, **kwargs):
