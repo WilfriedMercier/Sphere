@@ -53,10 +53,8 @@ class ConfigWindow(tk.Toplevel):
         
         # Dictionnary with flags to know when a value is incorrect before launching the projection routine
         self.error           = {'thread'        : False, 
-                                'latitudeMin'   : False,
-                                'latitudeMax'   : False,
-                                'longitudeMin'  : False,
-                                'longitudeMax'  : False,
+                                'latitude'      : False,
+                                'longitude'     : False,
                                 'latitudeInit'  : False,
                                 'longitudeInit' : False,
                                 'step'          : False,
@@ -153,6 +151,7 @@ class ConfigWindow(tk.Toplevel):
         self.nameFrame   = tk.Frame(self.entryFrame,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.nameLabel   = tk.Label(self.nameFrame,   bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', anchor=tk.W, font=(self.main.font, 10))
         self.nameEntry   = Entry(   self.nameFrame, self, self.root, dtype=str, defaultValue='', **entryProperties)
+        self.nameEntry.triggerError()
         
         '''
         Open rectangular input file  
@@ -452,11 +451,18 @@ class ConfigWindow(tk.Toplevel):
         
         if   slider is self.latMinScale:
             cbounds = self.checkBounds(self.latMinScale, self.latMaxScale)
+            self.checkInit(which='latitude')
             if cbounds is None:
                 pass
             elif not cbounds:
                 self.latMinLabel.configure(fg='firebrick1')
                 self.latMaxLabel.configure(fg='firebrick1')
+                
+                # Update graph bound line
+                self.updateBounds(self.latMinScale)
+                
+                # Change error flag
+                self.error['latitude'] = True
             else:
                 self.latMinLabel.configure(fg='black')
                 self.latMaxLabel.configure(fg='black')
@@ -464,15 +470,25 @@ class ConfigWindow(tk.Toplevel):
                 # Update graph bound line
                 self.updateBounds(self.latMinScale)
                 
+                # Change error flag
+                self.error['latitude'] = False
+                
             self.latMinLabel.configure(text='Minimum latitude: %.1f°'   %value)
                 
         elif slider is self.latMaxScale:
             cbounds = self.checkBounds(self.latMinScale, self.latMaxScale)
+            self.checkInit(which='latitude')
             if cbounds is None:
                 pass
             elif not cbounds:
                 self.latMinLabel.configure(fg='firebrick1')
                 self.latMaxLabel.configure(fg='firebrick1')
+                
+                # Update graph bound line
+                self.updateBounds(self.latMaxScale)
+                
+                # Change error flag
+                self.error['latitude'] = True
             else:
                 self.latMinLabel.configure(fg='black')
                 self.latMaxLabel.configure(fg='black')
@@ -480,15 +496,25 @@ class ConfigWindow(tk.Toplevel):
                 # Update graph bound line
                 self.updateBounds(self.latMaxScale)
                 
+                # Change error flag
+                self.error['latitude'] = False
+                
             self.latMaxLabel.configure(text='Maximum latitude: %.1f°'   %value)
                 
         elif slider is self.longMinScale:
             cbounds = self.checkBounds(self.longMinScale, self.longMaxScale)
+            self.checkInit(which='longitude')
             if cbounds is None:
                 pass
             elif not cbounds:
                 self.longMinLabel.configure(fg='firebrick1')
                 self.longMaxLabel.configure(fg='firebrick1')
+                
+                # Update graph bound line
+                self.updateBounds(self.longMinScale)
+                
+                # Change error flag
+                self.error['longitude'] = True
             else:
                 self.longMinLabel.configure(fg='black')
                 self.longMaxLabel.configure(fg='black')
@@ -496,31 +522,44 @@ class ConfigWindow(tk.Toplevel):
                 # Update graph bound line
                 self.updateBounds(self.longMinScale)
             
+                # Change error flag
+                self.error['longitude'] = False
+                
             self.longMinLabel.configure(text='Minimum longitude: %.1f°' %value)
                 
         elif slider is self.longMaxScale:
             cbounds = self.checkBounds(self.longMinScale, self.longMaxScale)
+            self.checkInit(which='longitude')
             if cbounds is None:
                 pass
             elif not cbounds:
                 self.longMinLabel.configure(fg='firebrick1')
                 self.longMaxLabel.configure(fg='firebrick1')
+                
+                # Update graph bound line
+                self.updateBounds(self.longMaxScale)
+                
+                # Change error flag
+                self.error['longitude'] = True
             else:
                 self.longMinLabel.configure(fg='black')
                 self.longMaxLabel.configure(fg='black')
                 
                 # Update graph bound line
                 self.updateBounds(self.longMaxScale)
+                
+                # Change error flag
+                self.error['longitude'] = False
                     
             self.longMaxLabel.configure(text='Maximum longitude: %.1f°' %value)
                 
         elif slider is self.dposLatScale:
-            self.dposLatLabel.configure(text='Latitude: %.1f°'              %value)
-            self.updateCrosshair()            
+            self.checkInit(which='latitude')
+            self.dposLatLabel.configure(text='Latitude: %.1f°' %value)            
                 
         elif slider is self.dposLonScale:
-            self.dposLonLabel.configure(text='Longitude: %.1f°'             %value)
-            self.updateCrosshair()
+            self.checkInit(which='longitude')
+            self.dposLonLabel.configure(text='Longitude: %.1f°' %value)
             
         return
     
@@ -552,6 +591,51 @@ class ConfigWindow(tk.Toplevel):
             scaleMax.normalState()
         
         return True
+    
+    def checkInit(self, *args, which='latitude', **kwargs):
+        '''
+        Check the init values against the min and max bounds.
+        
+        Parameters
+        ----------
+            which : 'latitude' or 'longitude'
+                which widget to update
+        '''
+        
+        if which not in ['latitude', 'longitude']:
+            raise ValueError('checkInit argument must either be latitude or longitude. Cheers !')
+            
+        if which == 'latitude':
+            value = self.dposLatScale.get()
+            if self.dposLatScale['state'] == 'disabled':
+                return
+            elif value >= self.latMinScale.get() and value <= self.latMaxScale.get():
+                self.dposLatScale.normalState()
+                self.dposLatLabel.configure(fg='black')
+                self.error['latitudeInit'] = False    
+                self.updateCrosshair('darkgreen')
+            else:
+                self.dposLatScale.errorState()
+                self.dposLatLabel.configure(fg='firebrick1')
+                self.error['latitudeInit'] = True
+                self.updateCrosshair('firebrick')
+                
+        elif which == 'longitude':
+            value = self.dposLonScale.get()
+            if self.dposLonScale['state'] == 'disabled':
+                return
+            elif value >= self.longMinScale.get() and value <= self.longMaxScale.get():
+                self.dposLonScale.normalState()
+                self.dposLonLabel.configure(fg='black')
+                self.error['longitudeInit'] = False
+                self.updateCrosshair('darkgreen')
+            else:
+                self.dposLonScale.errorState()
+                self.dposLonLabel.configure(fg='firebrick1')
+                self.error['longitudeInit'] = True
+                self.updateCrosshair('firebrick')
+        
+        return
     
     #######################################
     #           Loading file(s)           #
@@ -670,7 +754,7 @@ class ConfigWindow(tk.Toplevel):
             self.longMaxLine = self.updateLine(self.longMaxLine, float(self.longMaxScale.get()), which='y')
         return
     
-    def updateCrosshair(self, *args, **kwargs):
+    def updateCrosshair(self, color, *args, **kwargs):
         '''Update the crosshair.'''
         
         if self.data is not None:
@@ -678,10 +762,11 @@ class ConfigWindow(tk.Toplevel):
             xpos = self.xlim[0] + (float(self.dposLonScale.get()) + 180)/360 * (self.xlim[1] - self.xlim[0])
             ypos = self.ylim[1] - (float(self.dposLatScale.get()) + 90 )/180 * (self.ylim[1] - self.ylim[0])
             if self.crosshair is None:
-                self.crosshair = self.ax.plot([xpos], [ypos], marker='x', markersize=15, color='black', markeredgewidth=5)[0]
+                self.crosshair = self.ax.plot([xpos], [ypos], marker='x', markersize=15, color=color, markeredgewidth=5)[0]
             else:
                 self.crosshair.set_xdata([xpos])
                 self.crosshair.set_ydata([ypos])
+                self.crosshair.set_color(color)
             
             self.canvas.draw_idle()
         return
@@ -789,7 +874,7 @@ class ConfigWindow(tk.Toplevel):
         self.figframe.pack(side=tk.BOTTOM, fill='x', expand=True)
         
         # Set crosshair
-        self.updateCrosshair()
+        self.updateCrosshair('darkgreen')
 
         return
         
