@@ -150,7 +150,9 @@ class ConfigWindow(tk.Toplevel):
         
         self.nameFrame   = tk.Frame(self.entryFrame,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.nameLabel   = tk.Label(self.nameFrame,   bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', anchor=tk.W, font=(self.main.font, 10))
-        self.nameEntry   = Entry(   self.nameFrame, self, self.root, dtype=str, defaultValue='', **entryProperties)
+        self.nameEntry   = Entry(   self.nameFrame, self, self.root, dtype=str, defaultValue='', 
+                                    traceCommand=lambda *args, **kwargs: self.nameEntry.removeError() if self.nameEntry.value != '' else self.nameEntry.triggerError(),
+                                    **entryProperties)
         self.nameEntry.triggerError()
         
         '''
@@ -170,6 +172,7 @@ class ConfigWindow(tk.Toplevel):
         
         self.inputEntry  = Entry(   self.inputFrame2, self, self.root, dtype=str, defaultValue='',
                                     traceCommand=self.loadInput, **entryProperties)
+        self.inputEntry.triggerError()
         
         self.inputButton = tk.Button(self.inputFrame2, image=self.main.iconDict['FOLDER_17'], 
                                      bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground='black', 
@@ -666,6 +669,9 @@ class ConfigWindow(tk.Toplevel):
             # Change entry text color to ok 
             self.inputEntry.configure(fg=self.entryProperties['fg'])
             
+            # Change to error state
+            self.inputEntry.removeError()
+            
             # Resize window
             size = (850, 650)
             self.geometry('%dx%d' %(size[0], size[1]))
@@ -683,7 +689,10 @@ class ConfigWindow(tk.Toplevel):
             # Change entry text color to error
             self.inputEntry.configure(fg='firebrick1')
             
-            # Hide graph in the windoq
+            # Change to error state
+            self.inputEntry.triggerError()
+            
+            # Hide graph in the window
             self.hideGraph()
             
             # Resize window

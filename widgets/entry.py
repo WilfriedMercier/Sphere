@@ -157,6 +157,7 @@ class Entry(tk.Entry):
             # Calling the given trace function first, then push new value
             self.traceCommand()
             self._push()
+            
         return
     
     
