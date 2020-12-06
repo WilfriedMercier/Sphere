@@ -52,12 +52,11 @@ class ConfigWindow(tk.Toplevel):
         self.name            = title
         
         # Dictionnary with flags to know when a value is incorrect before launching the projection routine
-        self.error           = {'thread'        : False, 
-                                'latitude'      : False,
+        self.error           = {'latitude'      : False,
                                 'longitude'     : False,
                                 'latitudeInit'  : False,
                                 'longitudeInit' : False,
-                                'step'          : False,
+                                'step'          : True,
                                 'inputFile'     : True,
                                 'projectName'   : True}
         
@@ -151,7 +150,7 @@ class ConfigWindow(tk.Toplevel):
         self.nameFrame   = tk.Frame(self.entryFrame,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.nameLabel   = tk.Label(self.nameFrame,   bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', anchor=tk.W, font=(self.main.font, 10))
         self.nameEntry   = Entry(   self.nameFrame, self, self.root, dtype=str, defaultValue='', 
-                                    traceCommand=lambda *args, **kwargs: self.nameEntry.removeError() if self.nameEntry.value != '' else self.nameEntry.triggerError(),
+                                    traceCommand=self.checkName,
                                     **entryProperties)
         self.nameEntry.triggerError()
         
@@ -201,9 +200,7 @@ class ConfigWindow(tk.Toplevel):
                                      text='+', font=('fixed', 10, 'bold'), activeforeground='white',
                                      command=lambda *args, **kwargs: None)
         
-        self.threadEntry = Entry(    self.threadFrame, self, self.root, dtype=int, defaultValue=1, width=3, justify=tk.CENTER, **entryProperties,
-                                     traceCommand=lambda *args, **kwargs: self.updateThreadValue(*args, **kwargs))
-        self.threadEntry.configure(fg='black')
+        self.threadCount = tk.Label( self.threadFrame, width=3, justify=tk.CENTER, fg=self.entryProperties['fg'], bg=self.winProperties['bg'], text=1)
         
         '''
         Longitude and latitude steps widgets
@@ -219,8 +216,10 @@ class ConfigWindow(tk.Toplevel):
         self.stepLabel    = tk.Label( self.stepLblFrame, bg=self.winProperties['bg'], text='Step (°)', font=(self.main.font, 10), anchor=tk.W)
         
         self.stepFrame    = tk.Frame( self.stepAll,      bg=self.winProperties['bg'],  bd=0, highlightthickness=0)
-        self.stepEntry    = Entry(    self.stepFrame, self, self.root, dtype=float, defaultValue=1, width=3, justify=tk.CENTER, **entryProperties,
-                                      traceCommand=lambda *args, **kwargs: self.updateThreadValue(*args, **kwargs))
+        self.stepEntry    = Entry(    self.stepFrame, self, self.root, dtype=float, defaultValue=0, width=3, justify=tk.CENTER, **entryProperties,
+                                      traceCommand=lambda *args, **kwargs: self.updateStep(*args, **kwargs))
+        self.stepEntry.triggerError()
+        self.stepEntry.configure(fg='firebrick1')
         
         # Run widgets
         self.runButton    = tk.Button(self.line2col2,    bg=self.winProperties['bg'],  bd=0, image=self.parent.iconDict['RUN'],
@@ -318,7 +317,7 @@ class ConfigWindow(tk.Toplevel):
         self.threadLabel.pack(side=tk.LEFT)
         
         self.minButton.pack(  side=tk.LEFT)
-        self.threadEntry.pack(side=tk.LEFT, padx=5)
+        self.threadCount.pack(side=tk.LEFT, padx=5)
         self.maxButton.pack(  side=tk.LEFT)
         
         self.thLablFrame.pack(side=tk.TOP)
@@ -377,6 +376,53 @@ class ConfigWindow(tk.Toplevel):
         
         return
     
+    #######################################
+    #          Name interactions          #
+    #######################################
+    
+    def checkName(self, *args, **kwargs):
+        '''Actions taken when the name is changed.'''
+        
+        if self.nameEntry.value != '':
+            self.nameEntry.removeError()
+            self.error['projectName'] = False
+        else:
+            self.nameEntry.triggerError()
+            self.error['projectName'] = True
+            
+        self.checkRun()
+        return
+    
+    
+    #######################################
+    #          Step interactions          #
+    #######################################
+    
+    def updateStep(self, *args, **kwargs):
+        '''Actions taken when the value of the step entry is updated.'''
+        
+        value   = self.stepEntry.value
+        
+        if value== '' or 'disabled' in [self.latMinScale['state'], self.latMaxScale['state'], self.longMinScale['state'], self.longMaxScale['state'], self.dposLatScale['state'], self.dposLonScale['state']] or True in [self.error['latitude'], self.error['longitude'], self.error['latitudeInit'], self.error['longitudeInit']]:
+            self.stepEntry.triggerError()
+            self.stepEntry.configure(fg='firebrick1')
+            self.error['step'] = True
+        else:
+            value   = float(value)
+            maxStep = min(float(self.latMaxScale.get()) - float(self.latMinScale.get()), float(self.longMaxScale.get()) - float(self.longMinScale.get()))
+            
+            if value <= 0 or value >= maxStep:
+                self.stepEntry.triggerError()
+                self.stepEntry.configure(fg='firebrick1')
+                self.error['step'] = True
+            else:
+                self.stepEntry.removeError()
+                self.stepEntry.configure(fg=self.entryProperties['fg'])
+                self.error['step'] = False
+            
+        self.checkRun()
+        return
+    
     
     ############################################
     #           Thread interactions            #
@@ -385,61 +431,36 @@ class ConfigWindow(tk.Toplevel):
     def decreaseThread(self, *args, **kwargs):
         '''Decrease by 1 the number of threads.'''
         
-        value     = self.threadEntry.var.get()
-        
-        if value == '' or value =='1':
-            self.threadEntry.var.set(1)
-        else:
-            self.threadEntry.var.set(int(value)-1)
+        value     = int(self.threadCount.cget('text'))
+        if value > 1:
+            self.threadCount.configure(text=value-1)
             
+        self.updateThreadButtons()
         return
     
     def increaseThread(self, *args, **kwargs):
         '''Decrease by 1 the number of threads.'''
         
-        value     = self.threadEntry.var.get()
-        
-        if value == '':
-            self.threadEntry.var.set(1)
-        elif value == self.main.cpuCount:
-            self.threadEntry.var.set(self.main.cpuCount)
-        else:
-            self.threadEntry.var.set(int(value)+1)
+        value     = int(self.threadCount.cget('text'))
+        if value < self.main.cpuCount:
+            self.threadCount.configure(text=value+1)
             
+        self.updateThreadButtons()
         return
     
-    def updateThreadValue(self, *args, **kwargs):
-        '''Actions taken when the thread value is modified.'''
+    def updateThreadButtons(self, *args, **kwargs):
+        '''Update the state of the thread buttons.'''
         
-        value = self.threadEntry.var.get()
-        
-        # If entry is empty we only change to 1 when the widget loses focus
-        if value == '':
-            self.error['thread']   = True
-            self.threadEntry.triggerError()
-            return
-        else:
-           value = int(value) 
-           self.error['thread']  = False 
-           self.threadEntry.removeError()
-            
-        # Deal with cases where number of threads goes beyond the max value or the min (1)
-        if value > self.main.cpuCount:
-            self.threadEntry.var.set(self.main.cpuCount)
-        elif value < 1:
-            self.threadEntry.var.set('1')
-            
-        value = int(self.threadEntry.var.get())
-        
-        if value == self.main.cpuCount:
-            self.maxButton.config(state='disabled')
-        elif value == 1:
+        if   int(self.threadCount.cget('text')) == 1:
             self.minButton.config(state='disabled')
+        elif int(self.threadCount.cget('text')) == self.main.cpuCount:
+            self.maxButton.config(state='disabled')
         else:
-            if self.maxButton['state'] == 'disabled':
-                self.maxButton.config(state='normal')
-            if self.minButton['state'] == 'disabled':
+            if self.minButton.cget('state') not in ['normal', 'active']:
                 self.minButton.config(state='normal')
+            if self.maxButton.cget('state') not in ['normal', 'active']:
+                self.maxButton.config(state='normal')
+            
         return
         
         
@@ -564,6 +585,7 @@ class ConfigWindow(tk.Toplevel):
             self.checkInit(which='longitude')
             self.dposLonLabel.configure(text='Longitude: %.1f°' %value)
             
+        self.checkRun()
         return
     
     def checkBounds(self, scaleMin, scaleMax, *args, **kwargs):
@@ -703,6 +725,7 @@ class ConfigWindow(tk.Toplevel):
             for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonScale]:
                 widget.disabledState()
                 
+            self.checkRun()
             return
 
         # Retrieve name written in Entry
@@ -712,6 +735,7 @@ class ConfigWindow(tk.Toplevel):
         if fname == '':
             self.inputEntry.configure(fg=self.entryProperties['fg'])
             errorFunction()
+            self.error['inputFile'] = True
             self.checkRun()
             return
         
@@ -922,8 +946,10 @@ class ConfigWindow(tk.Toplevel):
             raise TypeError('File must be a string.')
         
         if opath.exists(file) and file.split('.')[-1].lower() in self.extensions:
+            self.error['inputFile'] = False
             return okFunction()
         else:
+            self.error['inputFile'] = True
             return errorFunction()
         return
     
