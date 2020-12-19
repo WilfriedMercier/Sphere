@@ -8,7 +8,9 @@ Created on Sun Oct 18 12:56:36 2020
 Configuration window to generate new projections.
 """
 
+import os
 import os.path                           as     opath
+import numpy                             as     np
 import matplotlib.pyplot                 as     plt
 import tkinter                           as     tk
 from   tkinter.filedialog                import askopenfilename
@@ -16,6 +18,7 @@ from   matplotlib.figure                 import Figure
 from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from   .entry                            import Entry
 from   .scale                            import Scale
+from   backend.tools                     import projection
 
 class ConfigWindow(tk.Toplevel):
     '''Configuration window to generate new projections.'''
@@ -52,11 +55,7 @@ class ConfigWindow(tk.Toplevel):
         self.name            = title
         
         # Dictionnary with flags to know when a value is incorrect before launching the projection routine
-        self.error           = {'latitude'      : False,
-                                'longitude'     : False,
-                                'latitudeInit'  : False,
-                                'longitudeInit' : False,
-                                'step'          : True,
+        self.error           = {'step'          : True,
                                 'inputFile'     : True,
                                 'projectName'   : True}
         
@@ -69,10 +68,6 @@ class ConfigWindow(tk.Toplevel):
         self.data            = None
         self.canvas          = None
         self.crosshair       = None
-        self.latMinLine      = None
-        self.latMaxLine      = None
-        self.longMinLine     = None
-        self.longMaxLine     = None
         
         # Allowed file types and file extensions when loading the image
         self.filetypes       = [('PNG', '*.png'), ('JEPG', '*.jpeg'), ('JPG', '*.jpg'), ('GIF', '*.gif')]
@@ -103,7 +98,7 @@ class ConfigWindow(tk.Toplevel):
         self.title(self.name)
         
         # Setup window size
-        size             = (850, 220)
+        size          = (850, 220)
         self.geometry('%dx%d+%d+%d' %(size[0], size[1], (self.root.winfo_screenwidth()-size[0])//2, (self.root.winfo_screenheight()-size[1])//2))
         
         ########################################
@@ -135,7 +130,6 @@ class ConfigWindow(tk.Toplevel):
         self.line1       = tk.Frame(     self.masterFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.line2       = tk.Frame(     self.masterFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         
-        self.boundFrame  = tk.LabelFrame(self.line1,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Setup bounds',       font=self.textProperties['font'])
         self.entryFrame  = tk.LabelFrame(self.line1,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project properties', font=self.textProperties['font'])
         
         self.dposFrame   = tk.LabelFrame(self.line2,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Default position',   font=self.textProperties['font'])
@@ -225,45 +219,6 @@ class ConfigWindow(tk.Toplevel):
         self.runButton    = tk.Button(self.line2col2,    bg=self.winProperties['bg'],  bd=0, image=self.parent.iconDict['RUN'],
                                       highlightthickness=0, highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground=self.winProperties['bg'])
         
-        # Latitude and longitude limits widgets
-        
-        self.latMinframe  = tk.Frame( self.boundFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        self.latMaxframe  = tk.Frame( self.boundFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        
-        self.longMinframe = tk.Frame( self.boundFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        self.longMaxframe = tk.Frame( self.boundFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
-        
-        self.latMinLabel  = tk.Label( self.latMinframe,  text='Minimum latitude',  bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
-        self.latMaxLabel  = tk.Label( self.latMaxframe,  text='Maximum latitude',  bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
-        
-        self.longMinLabel = tk.Label( self.longMinframe, text='Minimum longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
-        self.longMaxLabel = tk.Label( self.longMaxframe, text='Maximum longitude', bg=self.winProperties['bg'], font=(self.main.font, 10), anchor=tk.W)
-        
-        self.latMinScale  = Scale(   self.latMinframe, self, self.root, disable=True, initValue=-90,
-                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
-                                     length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
-                                     command=lambda *args, **kwargs: self.sliderUpdate(self.latMinScale, *args, **kwargs))
-        
-        self.latMaxScale  = Scale(   self.latMaxframe, self, self.root, disable=True, initValue=90,
-                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState, 
-                                     length=200, width=12, orient='horizontal', from_=-90, to=90, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
-                                     command=lambda *args, **kwargs: self.sliderUpdate(self.latMaxScale, *args, **kwargs))
-        
-        
-        self.longMinScale = Scale(   self.longMinframe, self, self.root, disable=True, initValue=-180,
-                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
-                                     length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
-                                     command=lambda *args, **kwargs: self.sliderUpdate(self.longMinScale, *args, **kwargs))
-        
-        self.longMaxScale = Scale(   self.longMaxframe, self, self.root, disable=True, initValue=180,
-                                     hoverParams=hoverParams, normalStateParams=normalState, errorStateParams=errorState, disabledStateParams=disabledState,
-                                     length=200, width=12, orient='horizontal', from_=-180, to=180, resolution=0.1, showvalue=False, sliderrelief=tk.FLAT,
-                                     bg=self.winProperties['bg'], bd=1, highlightthickness=1, highlightbackground=self.winProperties['bg'], troughcolor=self.winProperties['bg'],
-                                     command=lambda *args, **kwargs: self.sliderUpdate(self.longMaxScale, *args, **kwargs))
-        
         # Default position
         
         self.dposLatFrame = tk.Frame(self.dposFrame,    bg=self.winProperties['bg'], bd=0, highlightthickness=0)
@@ -335,24 +290,6 @@ class ConfigWindow(tk.Toplevel):
         self.runButton.pack(   side=tk.RIGHT, padx=10, anchor=tk.CENTER)
         self.runButton.config(state=tk.DISABLED)
         
-        # Lat and long bounds widgets
-        self.latMinLabel.pack( side=tk.TOP,    fill='x', expand=True)
-        self.latMinScale.pack( side=tk.BOTTOM, fill='x', expand=True)
-        
-        self.latMaxLabel.pack( side=tk.TOP,    fill='x', expand=True)
-        self.latMaxScale.pack( side=tk.BOTTOM, fill='x', expand=True)
-        
-        self.longMinLabel.pack(side=tk.TOP,    fill='x', expand=True)
-        self.longMinScale.pack(side=tk.BOTTOM, fill='x', expand=True)
-        
-        self.longMaxLabel.pack(side=tk.TOP,    fill='x', expand=True)
-        self.longMaxScale.pack(side=tk.BOTTOM, fill='x', expand=True)
-        
-        self.latMinframe.grid( row=0, column=0, pady=10, padx=15)
-        self.latMaxframe.grid( row=0, column=1, pady=10)
-        self.longMinframe.grid(row=1, column=0, padx=15)
-        self.longMaxframe.grid(row=1, column=1)
-        
         # Default position widgets
         self.dposLatLabel.pack(side=tk.TOP,    fill='x', expand=True)
         self.dposLatScale.pack(side=tk.BOTTOM, fill='x', expand=True)
@@ -360,16 +297,15 @@ class ConfigWindow(tk.Toplevel):
         self.dposLonLabel.pack(side=tk.TOP,    fill='x', expand=True)
         self.dposLonScale.pack(side=tk.BOTTOM, fill='x', expand=True)
         
-        self.dposLatFrame.pack(side=tk.LEFT,   fill='x', padx=15, pady=10)
-        self.dposLonFrame.pack(side=tk.LEFT,   fill='x',          pady=10)
+        self.dposLatFrame.pack(side=tk.LEFT,   fill='x', padx=15, pady=10, expand=True)
+        self.dposLonFrame.pack(side=tk.LEFT,   fill='x',          pady=10, expand=True)
         
         # Master frames
-        self.boundFrame.pack(  side=tk.LEFT,   fill='x', padx=3)
         self.entryFrame.pack(  side=tk.LEFT,   fill='x', padx=3,           expand=True)
         self.line1.pack(       side=tk.TOP,    fill='x')
         
-        self.dposFrame.pack(   side=tk.LEFT,   fill='x', padx=3)
-        self.line2col2.pack(   side=tk.LEFT ,  fill='x', padx=3,  pady=5,  expand=True, anchor=tk.S)
+        self.dposFrame.pack(   side=tk.LEFT,   fill='x', padx=3, expand=True)
+        self.line2col2.pack(   side=tk.LEFT ,  fill='x', padx=3,  pady=5,  anchor=tk.S)
         self.line2.pack(       side=tk.LEFT,   fill='x',          pady=10, expand=True)
         
         self.masterFrame.pack( side=tk.TOP,    fill='x',          pady=5)
@@ -403,22 +339,14 @@ class ConfigWindow(tk.Toplevel):
         
         value   = self.stepEntry.value
         
-        if value== '' or 'disabled' in [self.latMinScale['state'], self.latMaxScale['state'], self.longMinScale['state'], self.longMaxScale['state'], self.dposLatScale['state'], self.dposLonScale['state']] or True in [self.error['latitude'], self.error['longitude'], self.error['latitudeInit'], self.error['longitudeInit']]:
+        if value== '' or float(value)<=0:
             self.stepEntry.triggerError()
             self.stepEntry.configure(fg='firebrick1')
             self.error['step'] = True
         else:
-            value   = float(value)
-            maxStep = min(float(self.latMaxScale.get()) - float(self.latMinScale.get()), float(self.longMaxScale.get()) - float(self.longMinScale.get()))
-            
-            if value <= 0 or value >= maxStep:
-                self.stepEntry.triggerError()
-                self.stepEntry.configure(fg='firebrick1')
-                self.error['step'] = True
-            else:
-                self.stepEntry.removeError()
-                self.stepEntry.configure(fg=self.entryProperties['fg'])
-                self.error['step'] = False
+            self.stepEntry.removeError()
+            self.stepEntry.configure(fg=self.entryProperties['fg'])
+            self.error['step'] = False
             
         self.checkRun()
         return
@@ -473,193 +401,15 @@ class ConfigWindow(tk.Toplevel):
         
         value = slider.get()
         
-        if   slider is self.latMinScale:
-            cbounds = self.checkBounds(self.latMinScale, self.latMaxScale)
-            self.checkInit(which='latitude')
-            if cbounds is None:
-                pass
-            elif not cbounds:
-                self.latMinLabel.configure(fg='firebrick1')
-                self.latMaxLabel.configure(fg='firebrick1')
-                
-                # Update graph bound line
-                self.updateBounds(self.latMinScale)
-                
-                # Change error flag
-                self.error['latitude'] = True
-            else:
-                self.latMinLabel.configure(fg='black')
-                self.latMaxLabel.configure(fg='black')
-                
-                # Update graph bound line
-                self.updateBounds(self.latMinScale)
-                
-                # Change error flag
-                self.error['latitude'] = False
-                
-            self.latMinLabel.configure(text='Minimum latitude: %.1f°'   %value)
-                
-        elif slider is self.latMaxScale:
-            cbounds = self.checkBounds(self.latMinScale, self.latMaxScale)
-            self.checkInit(which='latitude')
-            if cbounds is None:
-                pass
-            elif not cbounds:
-                self.latMinLabel.configure(fg='firebrick1')
-                self.latMaxLabel.configure(fg='firebrick1')
-                
-                # Update graph bound line
-                self.updateBounds(self.latMaxScale)
-                
-                # Change error flag
-                self.error['latitude'] = True
-            else:
-                self.latMinLabel.configure(fg='black')
-                self.latMaxLabel.configure(fg='black')
-                
-                # Update graph bound line
-                self.updateBounds(self.latMaxScale)
-                
-                # Change error flag
-                self.error['latitude'] = False
-                
-            self.latMaxLabel.configure(text='Maximum latitude: %.1f°'   %value)
-                
-        elif slider is self.longMinScale:
-            cbounds = self.checkBounds(self.longMinScale, self.longMaxScale)
-            self.checkInit(which='longitude')
-            if cbounds is None:
-                pass
-            elif not cbounds:
-                self.longMinLabel.configure(fg='firebrick1')
-                self.longMaxLabel.configure(fg='firebrick1')
-                
-                # Update graph bound line
-                self.updateBounds(self.longMinScale)
-                
-                # Change error flag
-                self.error['longitude'] = True
-            else:
-                self.longMinLabel.configure(fg='black')
-                self.longMaxLabel.configure(fg='black')
-                
-                # Update graph bound line
-                self.updateBounds(self.longMinScale)
-            
-                # Change error flag
-                self.error['longitude'] = False
-                
-            self.longMinLabel.configure(text='Minimum longitude: %.1f°' %value)
-                
-        elif slider is self.longMaxScale:
-            cbounds = self.checkBounds(self.longMinScale, self.longMaxScale)
-            self.checkInit(which='longitude')
-            if cbounds is None:
-                pass
-            elif not cbounds:
-                self.longMinLabel.configure(fg='firebrick1')
-                self.longMaxLabel.configure(fg='firebrick1')
-                
-                # Update graph bound line
-                self.updateBounds(self.longMaxScale)
-                
-                # Change error flag
-                self.error['longitude'] = True
-            else:
-                self.longMinLabel.configure(fg='black')
-                self.longMaxLabel.configure(fg='black')
-                
-                # Update graph bound line
-                self.updateBounds(self.longMaxScale)
-                
-                # Change error flag
-                self.error['longitude'] = False
-                    
-            self.longMaxLabel.configure(text='Maximum longitude: %.1f°' %value)
-                
-        elif slider is self.dposLatScale:
-            self.checkInit(which='latitude')
-            self.dposLatLabel.configure(text='Latitude: %.1f°' %value)            
+        if slider is self.dposLatScale:
+            self.dposLatLabel.configure(text='Latitude: %.1f°' %value)        
+            self.updateCrosshair('black')
                 
         elif slider is self.dposLonScale:
-            self.checkInit(which='longitude')
             self.dposLonLabel.configure(text='Longitude: %.1f°' %value)
+            self.updateCrosshair('black')
             
         self.checkRun()
-        return
-    
-    def checkBounds(self, scaleMin, scaleMax, *args, **kwargs):
-        '''
-        Check the minimum and maximum values of the latitude sliders.
-        
-        Parameters
-        ----------
-            scaleMin : own Scale widget
-                scale considered to contain the minimum value of both
-            scaleMax : own Scale widget
-                scale considered to contain the maximum value of both
-        '''
-        
-        # If one of the latitude sliders is disabled, no check is performed
-        if 'disabled' in [scaleMin['state'], scaleMax['state']]:
-            return None
-        
-        latMin = float(scaleMin.get())
-        latMax = float(scaleMax.get())
-        
-        if latMin >= latMax:
-            scaleMin.errorState()
-            scaleMax.errorState()
-            return False
-        else:
-            scaleMin.normalState()
-            scaleMax.normalState()
-        
-        return True
-    
-    def checkInit(self, *args, which='latitude', **kwargs):
-        '''
-        Check the init values against the min and max bounds.
-        
-        Parameters
-        ----------
-            which : 'latitude' or 'longitude'
-                which widget to update
-        '''
-        
-        if which not in ['latitude', 'longitude']:
-            raise ValueError('checkInit argument must either be latitude or longitude. Cheers !')
-            
-        if which == 'latitude':
-            value = self.dposLatScale.get()
-            if self.dposLatScale['state'] == 'disabled':
-                return
-            elif value >= self.latMinScale.get() and value <= self.latMaxScale.get():
-                self.dposLatScale.normalState()
-                self.dposLatLabel.configure(fg='black')
-                self.error['latitudeInit'] = False    
-                self.updateCrosshair('darkgreen')
-            else:
-                self.dposLatScale.errorState()
-                self.dposLatLabel.configure(fg='firebrick1')
-                self.error['latitudeInit'] = True
-                self.updateCrosshair('firebrick')
-                
-        elif which == 'longitude':
-            value = self.dposLonScale.get()
-            if self.dposLonScale['state'] == 'disabled':
-                return
-            elif value >= self.longMinScale.get() and value <= self.longMaxScale.get():
-                self.dposLonScale.normalState()
-                self.dposLonLabel.configure(fg='black')
-                self.error['longitudeInit'] = False
-                self.updateCrosshair('darkgreen')
-            else:
-                self.dposLonScale.errorState()
-                self.dposLonLabel.configure(fg='firebrick1')
-                self.error['longitudeInit'] = True
-                self.updateCrosshair('firebrick')
-        
         return
     
     #######################################
@@ -691,7 +441,7 @@ class ConfigWindow(tk.Toplevel):
             # Change entry text color to ok 
             self.inputEntry.configure(fg=self.entryProperties['fg'])
             
-            # Change to error state
+            # Change out to error state
             self.inputEntry.removeError()
             
             # Resize window
@@ -699,7 +449,7 @@ class ConfigWindow(tk.Toplevel):
             self.geometry('%dx%d' %(size[0], size[1]))
             
             # Update sliders
-            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonScale]:
+            for widget in [self.dposLatScale, self.dposLonScale]:
                 widget.normalState()
             
             # Load graph onto the window
@@ -722,7 +472,7 @@ class ConfigWindow(tk.Toplevel):
             self.geometry('%dx%d' %(size[0], size[1]))
             
             # Update sliders
-            for widget in [self.latMinScale, self.latMaxScale, self.longMinScale, self.longMaxScale, self.dposLatScale, self.dposLonScale]:
+            for widget in [self.dposLatScale, self.dposLonScale]:
                 widget.disabledState()
                 
             self.checkRun()
@@ -767,26 +517,6 @@ class ConfigWindow(tk.Toplevel):
         self.setAxis()
         return
     
-    def updateBounds(self, widget, *args, **kwargs):
-        '''
-        Update on the graph the latitude and longitude bounds given with the sliders.
-
-        Parameters
-        ----------
-            widget : own Scale widget
-                the slider object correponding to the bound beeing updated
-        '''
-        
-        if   widget is self.latMinScale:
-            self.latMinLine  = self.updateLine(self.latMinLine,  float(self.latMinScale.get()),  which='x')
-        elif widget is self.latMaxScale:
-            self.latMaxLine  = self.updateLine(self.latMaxLine,  float(self.latMaxScale.get()),  which='x')
-        elif widget is self.longMinScale:
-            self.longMinLine = self.updateLine(self.longMinLine, float(self.longMinScale.get()), which='y')
-        elif widget is self.longMaxScale:
-            self.longMaxLine = self.updateLine(self.longMaxLine, float(self.longMaxScale.get()), which='y')
-        return
-    
     def updateCrosshair(self, color, *args, **kwargs):
         '''Update the crosshair.'''
         
@@ -803,50 +533,6 @@ class ConfigWindow(tk.Toplevel):
             
             self.canvas.draw_idle()
         return
-    
-    def updateLine(self, line, val, which='x', *args, **kwargs):
-        '''
-        Update on the graph the latitude and longitude bounds given with the sliders.
-
-        Mandatory parameters
-        --------------------
-            line : matplotlib plot object
-                line object to be updated
-            val : float/int
-                value in plot units where to place the line
-                
-        Optional parameters
-        -------------------
-            which : 'x' or 'y'
-                which direction (x or y) to update the data
-                
-        Return the matplotlib line object.
-        '''
-        
-        if which not in ['x', 'y']:
-            raise ValueError('which parameter in updateLine function must either "x" or "y".')
-        
-        if self.data is not None:
-            
-            # Setup the data the correct way depending on the orientation of the line
-            if which == 'x':
-                xdata = self.xlim
-                val   = self.ylim[1] - (val + 90 )/180 * (self.ylim[1] - self.ylim[0])
-                ydata = [val, val]
-            else:
-                val   = self.xlim[0] + (val + 180)/360 * (self.xlim[1] - self.xlim[0])
-                xdata = [val, val]
-                ydata = self.ylim
-            
-            if line is None:
-                line = self.ax.plot(xdata, ydata, linestyle='--', linewidth=1, color='black')[0]
-            else:
-                line.set_xdata(xdata)
-                line.set_ydata(ydata)
-                
-            self.canvas.draw_idle()
-            
-        return line
         
     def setAxis(self, *args, **kwargs):
         '''Set the axis for a new figure.'''
@@ -907,7 +593,7 @@ class ConfigWindow(tk.Toplevel):
         self.figframe.pack(side=tk.BOTTOM, fill='x', expand=True)
         
         # Set crosshair
-        self.updateCrosshair('darkgreen')
+        self.updateCrosshair('black')
 
         return
         
@@ -927,6 +613,7 @@ class ConfigWindow(tk.Toplevel):
         '''
         Check whether a file exists and has the correct type and apply the correct function depending on the result.
 
+        # Arrays of latitude and longitude where to compute the projections
         Mandatory parameters
         --------------------
             file : str
@@ -980,4 +667,61 @@ class ConfigWindow(tk.Toplevel):
             self.name = title
             self.title(self.name)
         return
+    
+    
+    #####################################
+    #            Run methods            #
+    #####################################
+    
+    def checkDir(self, directory, *args, **kwargs):
+        '''
+        Check that the given directory does not exist or if so whether it is empty.
 
+        Parameters
+        ----------
+        directory : str
+            directory to check
+
+        Return True if ok and False otherwise.
+        '''
+        
+        if not isinstance(directory, str):
+            raise TypeError('Directory name must be given as a string.')
+            
+        if not opath.isdir(directory):
+            raise IOError('Given directory name does not correspond to a directory.')
+        
+        if not opath.exists(directory) or len(os.listdir(directory))==0:
+            return True
+        else:
+            return False
+        
+    def run(self):
+        '''Run the projection.'''
+        
+        # Setup the function parameters for the projection
+        data         = self.data
+        
+        directory    = self.nameEntry.value
+        if self.checkDir(directory):
+            pass
+        
+        name         = opath.split(directory)
+        name         = name[1] if name[1] != '' else opath.basename(name)
+        limLatitude  = [self.latMinScale.get(), self.latMaxScale.get()]
+        limLongitude = [self.longMinScale.get(), self.longMaxScale.get()]
+        step         = self.stepEntry.value
+        numThreads   = int(self.threadCount.cget('text'))
+        
+        # Init pos must be given in grid units, so we must convert the given values to the closest one
+        latInit       = self.dposLatScale.get()
+        longInit      = self.dposLonScale.get()
+        
+        allLong       = np.arange(limLongitude[0], limLongitude[-1]+step, step)
+        allLat        = np.arange(limLatitude[0],  limLatitude[-1]+step,  step)
+        initPos       = [np.argmin((allLong-longInit)**2), np.argmin((allLat-latInit)**2)]
+        
+        self.runButton.config(state='disabled')
+        projection(data, directory, name, limLatitude, limLongitude, step, numThreads, initPos=initPos)
+        self.runButton.config(state='normal')
+        return
