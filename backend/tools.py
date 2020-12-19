@@ -1,12 +1,7 @@
 # Mercier Wilfried - IRAP
 # Tools used to generate the projection
 
-# Since it is not used yet, no need to really import it
-try:
-   from   mpl_toolkits.basemap import Basemap
-except:
-   print('mpl_toolkits must be installed to run this software !')
-
+from   .basemap             import Basemap
 from   threading            import Thread
 import os.path              as     opath
 import numpy                as     np
@@ -135,34 +130,34 @@ class Projection(Thread):
       Thread.__init__(self)
       
       # Data and its longitude and latitude
-      self.data     = data
-      self.dataLong = dataLong
-      self.dataLat  = dataLat 
+      self.data      = data
+      self.dataLong  = dataLong
+      self.dataLat   = dataLat 
       
       # Longitude and latitude where to compute the projections
-      self.indices  = longIndices
-      self.long     = longitude
-      self.lat      = latitude
+      self.indices   = longIndices
+      self.long      = longitude
+      self.lat       = latitude
       
       # General output name used to save the figures
-      self.name     = name
-      self.size     = size 
+      self.name      = name
+      self.size      = size 
 
    def run(self):
       
       # Make directory if it does not exist yet
-      shp             = np.shape(self.data)[2]
+      shp            = np.shape(self.data)[2]
        
       for index in self.indices:
          for pos, lat in enumerate(self.lat):
 
             print('Computing at (long, lat) = (%s, %s)' %(self.long[index], lat))
-            m         = Basemap(projection='aeqd', lat_0=lat, lon_0=self.long[index])
+            m        = Basemap(lat_0=lat, lon_0=self.long[index])
             
             # Compute the projected data for each of the 3 RGB arrays in the image
-            projData  = []
+            projData = []
             for i in range(shp):
-               projData.append(m.transform_scalar(self.data[:,:,i], self.dataLong, self.dataLat, int(self.size[0]), int(self.size[1])))
+               projData.append(m.transform_scalar(self.data[:, :, i], self.dataLong, self.dataLat, int(self.size[0]), int(self.size[1])))
 
             # Use the indices rather than the values to name the files
             plt.imsave(opath.join(self.directory, self.name + '_%d,%d' %(self.long.index(self.long[index]), pos) + '.jpg'), \

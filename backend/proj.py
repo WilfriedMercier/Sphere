@@ -12,15 +12,8 @@ Adapted by : Wilfried Mercier - IRAP
 from   __future__ import absolute_import, division, print_function
 import numpy      as     np
 import pyproj
-import math
 
 __version__                = '1.2.2'
-_dg2rad                    = math.radians(1.)
-_rad2dg                    = math.degrees(1.)
-_cylproj                   = ['cyl','merc','mill','gall']
-_upper_right_out_of_bounds = ('the upper right corner of the plot is not in the map projection region')
-_lower_left_out_of_bounds  = ('the lower left corner of the plot is not in the map projection region')
-
 
 class Proj(object):
     """
@@ -153,21 +146,3 @@ class Proj(object):
             return lons, lats, x, y
         else:
             return lons, lats
-
-    def makegrid3d(self,nx,ny,returnxy=False):
-        """
-        Return arrays of shape (ny, nx, 2) containing lon, lat coordinates of an equally spaced native projection grid.
-        If returnxy=True, the x, y values of the grid are returned also.
-        """
-        
-        dx        = (self.urcrnrx - self.llcrnrx)/(nx-1)
-        dy        = (self.urcrnry - self.llcrnry)/(ny-1)
-        xy        = np.empty((ny, nx, 2), np.float64)
-        xy[...,0] = self.llcrnrx + dx*np.indices((ny, nx), np.float32)[1, :, :]
-        xy[...,1] = self.llcrnry + dy*np.indices((ny, nx), np.float32)[0, :, :]
-        lonlat    = self(xy, inverse=True)
-        
-        if returnxy:
-            return lonlat, xy
-        else:
-            return lonlat
