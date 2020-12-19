@@ -4,7 +4,7 @@ Sphere is a small software aimed at easily projecting rectangular images of plan
 
 In the end, both projection and image manipulation will be done through the same interface.
 
-![Interface](/example/Example.png)
+![Interface](/interface.png)
 
 ## Why azimuthal equidistant projection ?
 
@@ -29,12 +29,11 @@ So still quite a lot of work to do. But if you want to have a try, you can downl
 
 ## What do I need to run it ?
 
-Obviously python3, one of the latest versions would be preferable. glob, tkinter and ttk should be installed by default in theory. Additionnaly, here are the following librairies that you need to install:
+python3, one of the latest versions would be preferable. glob, tkinter and ttk should be installed by default in theory. Additionnaly, here are the following librairies that you need to install:
 
 - [numpy](https://numpy.org/)
 - [matplotlib](https://matplotlib.org/)
 - [PyYAML](https://pyyaml.org/)
-- [__mpl_toolkits.basemap__](https://matplotlib.org/basemap/) (this is the backbone of the projection part of the code, though it is not mandatory for manipulating images)
 
 The code + icons are actually quite light weight. Most of the size comes from the example, which for the moment is mandatory if you want to try this software, but will not in future versions. So hopefully, the example will be moved somewhere else and this project will be much less heavy than it is now.
 
@@ -44,4 +43,4 @@ __This software has only been tested on an Ubuntu 20.04.1 machine.__
 
 A couple of tests were performed on a MAC OSX machine. The threading used to catch SIGINT does not work properly on MAC and is therefore disabled for now. Plenty of issues appear when running this software on a MAC OSX machine. These shall be dealt with once the bulge of the code has been completed. 
 
-Tests on a windows machine should arrive soon as well.
+Tests on a windows machine should arrive sometimes in the 'near' future as well.
