@@ -5,7 +5,7 @@
 try:
    from   mpl_toolkits.basemap import Basemap
 except:
-   pass
+   print('mpl_toolkits must be installed to run this software !')
 
 from   threading            import Thread
 import os.path              as     opath
@@ -25,7 +25,7 @@ def checkPairs(data, name):
       data : any type
          data to check
       name : str
-         name used in the error messageO
+         name used in the error message
    '''
 
    if not isinstance(data, (list, tuple)):
@@ -171,11 +171,11 @@ class Projection(Thread):
 
 def projection(data, directory, name, limLatitude, limLongitude, step, numThreads, initPos=None):
     '''
-    Perform the projections given the step, bounds and number of threads allowed to use.
+    Perform the projections given the step, bounds and number of threads.
     
     Parameters
     ----------
-        directory : str
+       directory : str
             name of the directory where to write the YAML and output files
        data : numpy 2D array or numpy RGB array
           data corresponding to the given matrix image loaded
@@ -231,7 +231,6 @@ def projection(data, directory, name, limLatitude, limLongitude, step, numThread
        initPos    = [0, lenLat]
     
     # Setup number of threads
-    numThreads    = 8
     if numThreads > lenLong+1:
        numThreads = lenLong+1
     
