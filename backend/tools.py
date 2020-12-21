@@ -136,15 +136,20 @@ class Projection(Thread):
       # General output name used to save the figures
       self.name      = name
       self.directory = directory
-      self.size      = size 
+      self.size      = size
+      
+      # Keyword used to stop the thread if necessary
+      self.ok        = True 
 
    def run(self):
       
-      # Make directory if it does not exist yet
       shp            = np.shape(self.data)[2]
        
       for index in self.indices:
          for pos, lat in enumerate(self.lat):
+             
+            if not self.ok:
+                break
 
             print('Computing at (long, lat) = (%s, %s)' %(self.long[index], lat))
             m        = Basemap(lat_0=lat, lon_0=self.long[index])
@@ -157,89 +162,114 @@ class Projection(Thread):
             # Use the indices rather than the values to name the files
             plt.imsave(opath.join(self.directory, self.name + '_%d,%d' %(index, pos) + '.jpg'),
                        np.asarray(np.moveaxis(projData, 0, -1), dtype='uint8'), origin='lower', format='jpg')
+            
+         if not self.ok:
+             break
+         
       return
 
-def projection(data, directory, name, step, numThreads, initPos=None, allLong=None, allLat=None):
-    '''
-    Perform the projections given the step, bounds and number of threads.
-    
-    Parameters
-    ----------
-       data : numpy 2D array or numpy RGB array
-          data corresponding to the given matrix image loaded
-       directory : str
-          name of the directory where to write the YAML and output files
-       name : str
-          name used for the YAML and output files
-       numThreads : int
-          number of threads to use for the computation
-       step : float/int
-          step used when computed a new image with different coordinates. Units is assumed identical as latitude and longitude.
-    
-    Optional parameters
-    -------------------
-       allLat : numpy array
-          the latitudes where to compute the projection. If not given, the array is computed.
-       allLong : numpy array
-          the longitudes where to compute the projection. If not given, the array is computed. 
-       initPos : (int, int)
-          longitude and latitude initial position written in the YAML file. Must be given in grid units. If None, first longitude lower bound and latitude upper bound are used.
-    '''
-    
-    if not isinstance(name, str):
-        raise TypeError('Name should be of type string.')
-    
-    if not isinstance(directory, str):
-        raise TypeError('Directory should be of type string')
-    
-    if not isinstance(step, (int, float)):
-       raise TypeError('step must either be a float or an int.')
-    
-    if not isinstance(numThreads, int):
-       raise TypeError('Number of threads must be an int.')
-    if numThreads < 1:
-       raise ValueError('Given number of threads is %s but accepted value must be >= 1.' %numThreads)
-    
-    # Create directory if it does not exist
-    os.makedirs(directory, exist_ok=True)   
-    
-    # Shape of the image, longitude and latitude values for each pixel
-    shp           = np.shape(data)
-    longList      = np.linspace(-180, 180, shp[1])
-    latList       = np.linspace(-90,  90,  shp[0])
-    
-    # Arrays of latitude and longitude where to compute the projections
-    
-    if allLat is None:
-        allLong   = np.arange(-180, 180+step, step)
-    
-    if allLong is None:
-        allLat        = np.arange(-90,  90+step,  step)
+class RunProjection(Thread):
+
+    def __init__(self, data, directory, name, step, numThreads, initPos=None, allLong=None, allLat=None, size=(720, 720)):
+        '''
+        Perform the projections given the step, bounds and number of threads.
         
-    lenLong   = len(allLong)-1
-    lenLat        = len(allLat)-1
-    
-    if initPos is None:
-       initPos    = [0, lenLat]
-    
-    # Setup number of threads
-    if numThreads > lenLong+1:
-       numThreads = lenLong+1
-    
-    # Write YAML configuration file
-    writeYAML(opath.join(directory, name + '.yaml'), initPos, (allLat[0], allLat[-1]), (allLong[0], allLong[-1]), step)
-    
-    # We split the array into subarrays so that each thread is fed with independent data
-    threads       = []
-    long          = np.array_split(np.indices(allLong.shape)[0], numThreads)
-    
-    # Launch the run method for each thread to improve speed 
-    print('Setting up the projection dictionnary...')
-    for i in range(numThreads):
-       threads.append(Projection(data, longList, latList, allLong, long[i], allLat, directory=directory, name=name))
-       threads[i].start()
-    
-     # Join threads once job is done
-    for i in range(numThreads):
-       threads[i].join()
-       print('Thread %d done.' %i)
+        Parameters
+        ----------
+           data : numpy 2D array or numpy RGB array
+              data corresponding to the given matrix image loaded
+           directory : str
+              name of the directory where to write the YAML and output files
+           name : str
+              name used for the YAML and output files
+           numThreads : int
+              number of threads to use for the computation
+           step : float/int
+              step used when computed a new image with different coordinates. Units is assumed identical as latitude and longitude.
+        
+        Optional parameters
+        -------------------
+           allLat : numpy array
+              the latitudes where to compute the projection. If not given, the array is computed.
+           allLong : numpy array
+              the longitudes where to compute the projection. If not given, the array is computed. 
+           initPos : (int, int)
+              longitude and latitude initial position written in the YAML file. Must be given in grid units. If None, first longitude lower bound and latitude upper bound are used.
+           size : (int, int)
+              size of the output images in x and y. Default is 720 pixels in both directions. 
+        '''
+        
+        Thread.__init__(self)
+        
+        if not isinstance(name, str):
+            raise TypeError('Name should be of type string.')
+        
+        if not isinstance(directory, str):
+            raise TypeError('Directory should be of type string')
+        
+        if not isinstance(step, (int, float)):
+           raise TypeError('step must either be a float or an int.')
+        
+        if not isinstance(numThreads, int):
+           raise TypeError('Number of threads must be an int.')
+        if numThreads < 1:
+           raise ValueError('Given number of threads is %s but accepted value must be >= 1.' %numThreads)
+           
+        self.name          = name
+        self.directory     = directory
+        
+        # Create directory if it does not exist
+        os.makedirs(self.directory, exist_ok=True)   
+        
+        self.step          = step
+        self.data          = data
+        
+        # Shape of the image, longitude and latitude values for each pixel
+        self.shp           = np.shape(data)
+        self.longList      = np.linspace(-180, 180, self.shp[1])
+        self.latList       = np.linspace(-90,  90,  self.shp[0])
+        
+        # Arrays of latitude and longitude where to compute the projections
+        if allLong is None:
+            self.allLong   = np.arange(-180, 180, self.step)
+        else:
+            self.allLong   = allLong
+        
+        if allLat is None:
+            self.allLat    = np.arange(-90,  90+self.step,  self.step)
+        else:
+            self.allLat    = allLat    
+            
+        self.lenLong       = len(self.allLong)-1
+        self.lenLat        = len(self.allLat)-1
+        
+        if initPos is None:
+           self.initPos    = [0, self.lenLat]
+        else:
+           self.initPos    = initPos
+        
+        # Setup number of threads
+        if numThreads > self.lenLong+1:
+           self.numThreads = self.lenLong+1
+        else:
+           self.numThreads = numThreads 
+        
+        # Write YAML configuration file
+        writeYAML(opath.join(directory, name + '.yaml'), self.initPos, (self.allLat[0], self.allLat[-1]), (self.allLong[0], self.allLong[-1]), self.step)
+        
+        # We split the array into subarrays so that each thread is fed with independent data
+        self.threads       = []
+        self.long          = np.array_split(np.indices(self.allLong.shape)[0], self.numThreads)
+        
+    def run(self, *args, **kwargs):
+        
+        # Launch the run method for each thread to improve speed 
+        print('Setting up the projection dictionnary...')
+        for i in range(self.numThreads):
+           self.threads.append(Projection(self.data, self.longList, self.latList, self.allLong, self.long[i], self.allLat, directory=self.directory, name=self.name))
+           self.threads[i].start()
+        
+         # Join threads once job is done
+        for i in range(self.numThreads):
+           self.threads[i].join()
+           print('Thread %d done.' %i)

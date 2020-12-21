@@ -117,10 +117,11 @@ class mainApplication:
         self.iconDict['FOLDER']     = tk.BitmapImage(data=icons['FOLDER'],     maskdata=icons['FOLDER_MASK'],     background='goldenrod')
         self.iconDict['FOLDER_256'] = tk.BitmapImage(data=icons['FOLDER_256'], maskdata=icons['FOLDER_256_MASK'], background='goldenrod')
         self.iconDict['FOLDER_17']  = tk.BitmapImage(data=icons['FOLDER_17'],  maskdata=icons['FOLDER_17_MASK'],  background='goldenrod')
-        self.iconDict['DELETE']     = tk.BitmapImage(data=icons['DELETE'],     maskdata=icons['DELETE_MASK'],     background='light cyan', foreground='black')
-        self.iconDict['DUPPLICATE'] = tk.BitmapImage(data=icons['DUPPLICATE'], maskdata=icons['DUPPLICATE_MASK'], background='black',      foreground='black')
-        self.iconDict['CONFIG']     = tk.BitmapImage(data=icons['CONFIG'],     maskdata=icons['CONFIG_MASK'],     background=self.color,   foreground='black') 
-        self.iconDict['RUN']        = tk.BitmapImage(data=icons['RUN'],        maskdata=icons['RUN_MASK'],        background='SpringGreen4', foreground='white') 
+        self.iconDict['DELETE']     = tk.BitmapImage(data=icons['DELETE'],     maskdata=icons['DELETE_MASK'],     background='light cyan',   foreground='black')
+        self.iconDict['DUPPLICATE'] = tk.BitmapImage(data=icons['DUPPLICATE'], maskdata=icons['DUPPLICATE_MASK'], background='black',        foreground='black')
+        self.iconDict['CONFIG']     = tk.BitmapImage(data=icons['CONFIG'],     maskdata=icons['CONFIG_MASK'],     background=self.color,     foreground='black') 
+        self.iconDict['RUN']        = tk.BitmapImage(data=icons['RUN'],        maskdata=icons['RUN_MASK'],        background='SpringGreen4', foreground='white')
+        self.iconDict['CHECK']      = tk.BitmapImage(data=icons['CHECK'],      maskdata=icons['CHECK_MASK'],      background=self.color,     foreground='firebrick1') 
         
         
         #############################################

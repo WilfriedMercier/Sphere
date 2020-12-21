@@ -184,18 +184,8 @@ class Tab(tk.Frame):
             self.confParams         = yaml.load(f, Loader=yaml.Loader)
             
         # Perform some checks
-        for i in ['lat min', 'lat max', 'long min', 'long max', 'step']:
-            if i not in self.confParams:
-                self.confParams = {}
-                raise IOError('Data cannot be loaded because parameter %s is missing in the YAML file %s.' %(i, file))
-                
-        if self.confParams['lat min'] >= self.confParams['lat max']:
-            self.confParams = {}
-            raise ValueError('Minimum latitude (%s) >= Maximum latitude (%s).' %(self.confParams['lat min'], self.confParams['lat max']))
-
-        if self.confParams['long min'] >= self.confParams['long max']:
-            self.confParams = {}
-            raise ValueError('Minimum longitude (%s) >= Maximum longitude (%s).' %(self.confParams['long min'], self.confParams['long max']))
+        if 'step' not in self.confParams:
+            raise IOError('Data cannot be loaded because parameter "step" is missing in the YAML file %s.' %file)
             
         if self.confParams['step'] <= 0:
             self.confParams = {}
@@ -217,8 +207,8 @@ class Tab(tk.Frame):
         # Setup additional attributes
         self.dataDir, self.name     = opath.split(file)
         self.name                   = opath.splitext(self.name)[0]
-        self.longitude              = np.arange(self.confParams['long min'], self.confParams['long max']+self.confParams['step'], self.confParams['step'])
-        self.latitude               = np.arange(self.confParams['lat min'],  self.confParams['lat max'] +self.confParams['step'], self.confParams['step'])
+        self.longitude              = np.arange(-180, 180, self.confParams['step'])
+        self.latitude               = np.arange(-90,  90+self.confParams['step'],  self.confParams['step'])
         self.lenLong                = len(self.longitude) 
         self.lenLat                 = len(self.latitude)
         return
@@ -246,7 +236,7 @@ class Tab(tk.Frame):
         self.ax.xaxis.set_ticks([])
         
         # Default empty image
-        self.im       = self.ax.imshow([[0, 0], [0, 0]], cmap='Greys')
+        self.im       = self.ax.imshow([[0, 0], [0, 0]], cmap='Greys', origin='lower')
         return
     
     ###################################################

@@ -8,6 +8,7 @@ Created on Sun Oct 18 12:56:36 2020
 Configuration window to generate new projections.
 """
 
+import threading
 import os
 import os.path                           as     opath
 import numpy                             as     np
@@ -18,7 +19,8 @@ from   matplotlib.figure                 import Figure
 from   matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from   .entry                            import Entry
 from   .scale                            import Scale
-from   backend.tools                     import projection
+from   .errorMessage                     import ErrorMessage
+from   backend.tools                     import RunProjection
 
 class ConfigWindow(tk.Toplevel):
     '''Configuration window to generate new projections.'''
@@ -53,6 +55,11 @@ class ConfigWindow(tk.Toplevel):
         self.parent          = parent
         self.root            = root
         self.name            = title
+        
+        self.runState        = False
+        
+        self.xres            = 720
+        self.yres            = 720
         
         # Dictionnary with flags to know when a value is incorrect before launching the projection routine
         self.error           = {'step'          : True,
@@ -181,7 +188,7 @@ class ConfigWindow(tk.Toplevel):
                              anchor=tk.W, font=(self.main.font, 10))
         
         self.resEntry     = Entry(self.resFrame, self, self.root, dtype=str, defaultValue='720x720',
-                                  **entryProperties)
+                                  traceCommand=self.checkResolution, **entryProperties)
         
         
         '''
@@ -343,6 +350,7 @@ class ConfigWindow(tk.Toplevel):
         
         # If syntax is not 'n1xn2' trigger error
         if len(resolution)!=2:
+            self.resEntry.configure(fg='firebrick1')
             self.resEntry.triggerError()
             self.error['res'] = True
             return
@@ -352,16 +360,19 @@ class ConfigWindow(tk.Toplevel):
             xres              = int(resolution[0])
             yres              = int(resolution[1])
         except ValueError:
+            self.resEntry.configure(fg='firebrick1')
             self.resEntry.triggerError()
             self.error['res'] = True
             return
         
         # If negative integers, trigger error
         if xres <= 0 or yres <=0:
+            self.resEntry.configure(fg='firebrick1')
             self.resEntry.triggerError()
             self.error['res'] = True
             return
         else:
+            self.resEntry.configure(fg=self.entryProperties['fg'])
             self.xres         = xres
             self.yres         = yres
             self.resEntry.removeError()
@@ -369,6 +380,7 @@ class ConfigWindow(tk.Toplevel):
         
         self.checkRun()
         return
+    
     
     #######################################
     #          Name interactions          #
@@ -705,14 +717,20 @@ class ConfigWindow(tk.Toplevel):
     def checkRun(self, *args, **kwargs):
         '''Check whether the projection can be run or not.'''
         
-        if any(self.error.values()):
-            self.runButton.configure(state=tk.DISABLED)
-            self.runButton.unbind('<Enter>')
-            self.runButton.unbind('<Leave>')
+        print('hey2')
+        if not self.runState:            
+            if any(self.error.values()):
+                self.runButton.configure(state=tk.DISABLED)
+                self.runButton.unbind('<Enter>')
+                self.runButton.unbind('<Leave>')
+            else:
+                self.runButton.configure(state=tk.NORMAL)
+                self.runButton.bind(  '<Enter>', lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='black'))
+                self.runButton.bind(  '<Leave>', lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='white'))
         else:
-            self.runButton.configure(state=tk.NORMAL)
-            self.runButton.bind('<Enter>',    lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='black'))
-            self.runButton.bind('<Leave>',    lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='white'))
+            print("jey3")
+            self.runButton.bind(      '<Enter>', lambda *args, **kwargs: self.parent.iconDict['CHECK'].configure(foreground='black'))
+            self.runButton.bind(      '<Leave>', lambda *args, **kwargs: self.parent.iconDict['CHECK'].configure(foreground='firebrick1'))
         return
 
     def setTitle(self, title, *args, **kwargs):
@@ -738,25 +756,57 @@ class ConfigWindow(tk.Toplevel):
     def run(self, *args, **kwargs):
         '''Run the projection.'''
         
-        # Setup the function parameters for the projection
-        data         = self.data
-        
-        # Generate the file and directory names
-        name         = self.nameEntry.value
-        directory    = opath.join(opath.dirname(self.inputEntry.value), name)
-        
-        step         = float(self.stepEntry.value)
-        numThreads   = int(self.threadCount.cget('text'))
-        
-        # Init pos must be given in grid units, so we must convert the given values to the closest one
-        latInit       = self.dposLatScale.get()
-        longInit      = self.dposLonScale.get()
-        
-        allLong       = np.arange(-180, 180+step, step)
-        allLat        = np.arange(-90,  90+step,  step)
-        initPos       = [np.argmin((allLong-longInit)**2), np.argmin((allLat-latInit)**2)]
-        
-        self.runButton.config(state='disabled')
-        projection(data, directory, name, step, numThreads, initPos=initPos, allLat=allLat, allLong=allLong)
-        self.runButton.config(state='normal')
+        if self.runState:
+            self.runState = False
+            for i in self.thread.threads:
+                i.ok = False
+            self.runButton.config(cursor='arrow', image=self.main.iconDict['RUN'])
+            self.checkRun()
+            print('Threads stopped')
+        else:
+            # Setup the function parameters for the projection
+            data         = self.data
+            
+            # Generate the file and directory names
+            name         = self.nameEntry.value
+            directory    = opath.join(opath.dirname(self.inputEntry.value), name)
+            
+            # Check that if directory exists, it only contain config files
+            if opath.isdir(directory):
+                files    = [f for f in os.listdir(directory) if opath.isfile(opath.join(directory, f))]
+                if any(['.yaml' not in i for i in files]):
+                    ErrorMessage(self, self.root, text='Directory %s is not empty.' %directory)
+                    return
+            
+            step         = float(self.stepEntry.value)
+            numThreads   = int(self.threadCount.cget('text'))
+            
+            # Init pos must be given in grid units, so we must convert the given values to the closest one
+            latInit       = self.dposLatScale.get()
+            longInit      = self.dposLonScale.get()
+            
+            allLong       = np.arange(-180, 180, step)
+            allLat        = np.arange(-90,  90+step,  step)
+            initPos       = [int(np.argmin((allLong-longInit)**2)), int(np.argmin((allLat-latInit)**2))]
+            
+            size          = (self.xres, self.yres)
+            
+            # Change button icon first 
+            self.config(cursor='watch')
+            self.runState = True
+            self.runButton.config(cursor='arrow', image=self.main.iconDict['CHECK'])
+            print('hey')
+            self.checkRun()
+            
+            # Run thread
+            self.thread   = RunProjection(data, directory, name, step, numThreads, initPos=initPos, allLat=allLat, allLong=allLong, size=size)
+            self.thread.start()
+            self.thread.join()
+            
+            # Set back the icon
+            self.config(cursor='arrow')
+            self.runState = False
+            self.runButton.config(cursor='arrow', image=self.main.iconDict['RUN'])
+            self.checkRun()
         return
+
