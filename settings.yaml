@@ -1,4 +1,4 @@
 font: fixed
 iconPath: ./icons
 path: ./
-projects: ['example/venus/venus.yaml']
+projects: []

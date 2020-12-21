@@ -56,8 +56,10 @@ class ConfigWindow(tk.Toplevel):
         
         # Dictionnary with flags to know when a value is incorrect before launching the projection routine
         self.error           = {'step'          : True,
+                                'res'           : False,
                                 'inputFile'     : True,
-                                'projectName'   : True}
+                                'projectName'   : True
+                               }
         
         # Layout properties
         self.winProperties   = winProperties
@@ -120,7 +122,6 @@ class ConfigWindow(tk.Toplevel):
             self.masterFrame : main frame containing all the others
             self.line1       : 1st line frame
             self.line2       : 2nd line frame
-            self.boundFrame  : frame containing the latitude and longitude bounds widgets
             self.dposFrame   : frame containing the default position widgets
             self.entryFrame  : frame containing the entry widgets on the second column
             self.line2col2   : frame for the second line of the second column
@@ -132,6 +133,8 @@ class ConfigWindow(tk.Toplevel):
         
         self.entryFrame  = tk.LabelFrame(self.line1,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project properties', font=self.textProperties['font'])
         
+        self.line11      = tk.Frame(     self.entryFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
         self.dposFrame   = tk.LabelFrame(self.line2,       bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Default position',   font=self.textProperties['font'])
         self.line2col2   = tk.Frame(     self.line2,       bg=self.winProperties['bg'], bd=1, highlightthickness=0)
         
@@ -141,7 +144,7 @@ class ConfigWindow(tk.Toplevel):
             self.nameFrame : frame containing widgets relative to typing the project name
         '''
         
-        self.nameFrame   = tk.Frame(self.entryFrame,  bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        self.nameFrame   = tk.Frame(self.line11,      bg=self.winProperties['bg'], bd=0, highlightthickness=0)
         self.nameLabel   = tk.Label(self.nameFrame,   bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Project name', anchor=tk.W, font=(self.main.font, 10))
         self.nameEntry   = Entry(   self.nameFrame, self, self.root, dtype=str, defaultValue='', 
                                     traceCommand=self.checkName,
@@ -170,6 +173,16 @@ class ConfigWindow(tk.Toplevel):
         self.inputButton = tk.Button(self.inputFrame2, image=self.main.iconDict['FOLDER_17'], 
                                      bd=0, bg=self.winProperties['bg'], highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground='black', 
                                      command=lambda *args, **kwargs: self.askLoad(title='Select a equirectangular surface image...', filetypes=self.filetypes))
+        
+        # Output resolution widgets
+        self.resFrame     = tk.Frame(self.line11, bg=self.winProperties['bg'], bd=0, highlightthickness=0)
+        
+        self.resLabel     = tk.Label(self.resFrame, bg=self.winProperties['bg'], bd=0, highlightthickness=0, text='Output file resolution (widthxheight)', 
+                             anchor=tk.W, font=(self.main.font, 10))
+        
+        self.resEntry     = Entry(self.resFrame, self, self.root, dtype=str, defaultValue='720x720',
+                                  **entryProperties)
+        
         
         '''
         Number of threads widgets
@@ -217,7 +230,8 @@ class ConfigWindow(tk.Toplevel):
         
         # Run widgets
         self.runButton    = tk.Button(self.line2col2,    bg=self.winProperties['bg'],  bd=0, image=self.parent.iconDict['RUN'],
-                                      highlightthickness=0, highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground=self.winProperties['bg'])
+                                      highlightthickness=0, highlightbackground=self.winProperties['bg'], relief=tk.FLAT, activebackground=self.winProperties['bg'],
+                                      command=self.run)
         
         # Default position
         
@@ -254,10 +268,15 @@ class ConfigWindow(tk.Toplevel):
         #                     Drawing frames                     #
         ##########################################################
         
+        # Resolution widgets
+        self.resLabel.pack(side=tk.TOP,       fill='x', expand=True)
+        self.resEntry.pack(side=tk.BOTTOM,    fill='x', expand=True)
+        self.resFrame.pack(side=tk.LEFT,      fill='x', padx=10, pady=12)
+        
         # Project name widgets
         self.nameLabel.pack(side=tk.TOP,      fill='x', expand=True)
         self.nameEntry.pack(side=tk.BOTTOM,   fill='x', expand=True)
-        self.nameFrame.pack(side=tk.TOP,      fill='x', padx=10, pady=12)
+        self.nameFrame.pack(side=tk.TOP,      fill='x', expand=True, padx=10, pady=12)
         
         # Open file widgets
         self.inputLabel.pack( side=tk.LEFT,   fill='x', expand=True)
@@ -266,7 +285,7 @@ class ConfigWindow(tk.Toplevel):
         self.inputEntry.pack( side=tk.LEFT,   fill='x', expand=True)
         self.inputButton.pack(side=tk.RIGHT,            padx=10)
         self.inputFrame2.pack(side=tk.BOTTOM, fill='x', expand=True)
-        self.inputFrame.pack( side=tk.TOP,    fill='x', padx=10)
+        self.inputFrame.pack( side=tk.BOTTOM, fill='x', padx=10)
         
         # Thread widgets
         self.threadLabel.pack(side=tk.LEFT)
@@ -303,6 +322,7 @@ class ConfigWindow(tk.Toplevel):
         # Master frames
         self.entryFrame.pack(  side=tk.LEFT,   fill='x', padx=3,           expand=True)
         self.line1.pack(       side=tk.TOP,    fill='x')
+        self.line11.pack(      side=tk.LEFT,   fill='x',                   expand=True)
         
         self.dposFrame.pack(   side=tk.LEFT,   fill='x', padx=3, expand=True)
         self.line2col2.pack(   side=tk.LEFT ,  fill='x', padx=3,  pady=5,  anchor=tk.S)
@@ -310,6 +330,44 @@ class ConfigWindow(tk.Toplevel):
         
         self.masterFrame.pack( side=tk.TOP,    fill='x',          pady=5)
         
+        return
+    
+    ########################################################
+    #            Resolution widgets interaction            #
+    ########################################################
+    
+    def checkResolution(self, *args, **kwargs):
+        '''Actions taken when the resolution is changed.'''
+        
+        resolution            = self.resEntry.value.split('x')
+        
+        # If syntax is not 'n1xn2' trigger error
+        if len(resolution)!=2:
+            self.resEntry.triggerError()
+            self.error['res'] = True
+            return
+            
+        # If non numeric characters appear, trigger error
+        try:
+            xres              = int(resolution[0])
+            yres              = int(resolution[1])
+        except ValueError:
+            self.resEntry.triggerError()
+            self.error['res'] = True
+            return
+        
+        # If negative integers, trigger error
+        if xres <= 0 or yres <=0:
+            self.resEntry.triggerError()
+            self.error['res'] = True
+            return
+        else:
+            self.xres         = xres
+            self.yres         = yres
+            self.resEntry.removeError()
+            self.error['res'] = True
+        
+        self.checkRun()
         return
     
     #######################################
@@ -339,7 +397,7 @@ class ConfigWindow(tk.Toplevel):
         
         value   = self.stepEntry.value
         
-        if value== '' or float(value)<=0:
+        if value== '' or float(value)<=0 or float(value)>45:
             self.stepEntry.triggerError()
             self.stepEntry.configure(fg='firebrick1')
             self.error['step'] = True
@@ -438,22 +496,26 @@ class ConfigWindow(tk.Toplevel):
         
         def okFunction(*args, **kwargs):
             
-            # Change entry text color to ok 
-            self.inputEntry.configure(fg=self.entryProperties['fg'])
+            try:
+                # Change entry text color to ok 
+                self.inputEntry.configure(fg=self.entryProperties['fg'])
+                
+                # Change out to error state
+                self.inputEntry.removeError()
+                
+                # Resize window
+                size = (850, 650)
+                self.geometry('%dx%d' %(size[0], size[1]))
+                
+                # Update sliders
+                for widget in [self.dposLatScale, self.dposLonScale]:
+                    widget.normalState()
+                
+                # Load graph onto the window
+                self.makeGraph()
+            except:
+                print('An error occured while loading data.')
             
-            # Change out to error state
-            self.inputEntry.removeError()
-            
-            # Resize window
-            size = (850, 650)
-            self.geometry('%dx%d' %(size[0], size[1]))
-            
-            # Update sliders
-            for widget in [self.dposLatScale, self.dposLonScale]:
-                widget.normalState()
-            
-            # Load graph onto the window
-            self.makeGraph()
             return
         
         def errorFunction(*args, **kwargs):
@@ -670,58 +732,31 @@ class ConfigWindow(tk.Toplevel):
     
     
     #####################################
-    #            Run methods            #
+    #            Run method             #
     #####################################
-    
-    def checkDir(self, directory, *args, **kwargs):
-        '''
-        Check that the given directory does not exist or if so whether it is empty.
-
-        Parameters
-        ----------
-        directory : str
-            directory to check
-
-        Return True if ok and False otherwise.
-        '''
         
-        if not isinstance(directory, str):
-            raise TypeError('Directory name must be given as a string.')
-            
-        if not opath.isdir(directory):
-            raise IOError('Given directory name does not correspond to a directory.')
-        
-        if not opath.exists(directory) or len(os.listdir(directory))==0:
-            return True
-        else:
-            return False
-        
-    def run(self):
+    def run(self, *args, **kwargs):
         '''Run the projection.'''
         
         # Setup the function parameters for the projection
         data         = self.data
         
-        directory    = self.nameEntry.value
-        if self.checkDir(directory):
-            pass
+        # Generate the file and directory names
+        name         = self.nameEntry.value
+        directory    = opath.join(opath.dirname(self.inputEntry.value), name)
         
-        name         = opath.split(directory)
-        name         = name[1] if name[1] != '' else opath.basename(name)
-        limLatitude  = [self.latMinScale.get(), self.latMaxScale.get()]
-        limLongitude = [self.longMinScale.get(), self.longMaxScale.get()]
-        step         = self.stepEntry.value
+        step         = float(self.stepEntry.value)
         numThreads   = int(self.threadCount.cget('text'))
         
         # Init pos must be given in grid units, so we must convert the given values to the closest one
         latInit       = self.dposLatScale.get()
         longInit      = self.dposLonScale.get()
         
-        allLong       = np.arange(limLongitude[0], limLongitude[-1]+step, step)
-        allLat        = np.arange(limLatitude[0],  limLatitude[-1]+step,  step)
+        allLong       = np.arange(-180, 180+step, step)
+        allLat        = np.arange(-90,  90+step,  step)
         initPos       = [np.argmin((allLong-longInit)**2), np.argmin((allLat-latInit)**2)]
         
         self.runButton.config(state='disabled')
-        projection(data, directory, name, limLatitude, limLongitude, step, numThreads, initPos=initPos)
+        projection(data, directory, name, step, numThreads, initPos=initPos, allLat=allLat, allLong=allLong)
         self.runButton.config(state='normal')
         return
