@@ -1,10 +1,10 @@
 # Mercier Wilfried - IRAP
 # Tools used to generate the projection
 
-from   .basemap             import Basemap
 from   threading            import Thread
 import os.path              as     opath
 import numpy                as     np
+import cartopy.crs          as     ccrs
 import matplotlib.pyplot    as     plt
 import os
 import yaml
@@ -85,8 +85,7 @@ def writeYAML(name, coordsInit, limLatitude, limLongitude, step, unit='°'):
 class Projection(Thread):
    '''A class to project some data with speed improvement from threading.'''
 
-   def __init__(self, data, dataLong, dataLat, longitude, longIndices, latitude, 
-                directory='out', name='out', size=(720, 720)):
+   def __init__(self, data, longitude, longIndices, latitude, directory='out', name='out', size=(1080, 1080)):
       '''
       Initialisation
       
@@ -94,16 +93,12 @@ class Projection(Thread):
       ----------
          data : numpy 2D array or numpy RGB array
             data corresponding to the given matrix image loaded
-         dataLat : numpy array
-             latitude corresponding to each pixel line in the image
-         dataLong : numpy array
-             longitude corresponding to each pixel column in the image
          latitude : list of float/int
             latitudes where to compute the projection
          longitude : list of float/int
             full list of longitudes where to compute the projection
          longIndices : list of int
-            indices int the longitude array/list where the thread must compute the projection
+            indices in the longitude array/list where the thread must compute the projection
             
       Optional parameters
       -------------------
@@ -111,22 +106,16 @@ class Projection(Thread):
              name of the directory where to write the ouput files. Default is 'out'.
          name : str
             name of the outputfile. Default is 'out'.
-         size : (int, int)
-            size of the output images in x and y. Default is 720 pixels in both directions. 
       '''
       
       if not isinstance(name, str):
           raise TypeError('Output name must be of type string only.')
           
-      if not isinstance(size, (list, tuple)) or len(size) != 2:
-          raise TypeError('Size of images must be a tuple of length 2.')
-          
       Thread.__init__(self)
       
       # Data and its longitude and latitude
       self.data      = data
-      self.dataLong  = dataLong
-      self.dataLat   = dataLat 
+      self.size      = size
       
       # Longitude and latitude where to compute the projections
       self.indices   = longIndices
@@ -136,14 +125,11 @@ class Projection(Thread):
       # General output name used to save the figures
       self.name      = name
       self.directory = directory
-      self.size      = size
       
       # Keyword used to stop the thread if necessary
       self.ok        = True 
 
    def run(self):
-      
-      shp            = np.shape(self.data)[2]
        
       for index in self.indices:
          for pos, lat in enumerate(self.lat):
@@ -151,17 +137,26 @@ class Projection(Thread):
             if not self.ok:
                 break
 
-            print('Computing at (long, lat) = (%s, %s)' %(self.long[index], lat))
-            m        = Basemap(lat_0=lat, lon_0=self.long[index])
+            print('Computing at (longitude, latitude) = (%s, %s)' %(self.long[index], lat))
             
-            # Compute the projected data for each of the 3 RGB arrays in the image
-            projData = []
-            for i in range(shp):
-               projData.append(m.transform_scalar(self.data[:, :, i], self.dataLong, self.dataLat, int(self.size[0]), int(self.size[1])))
+            # Generate new figure
+            if self.size[0] == self.size[1]:
+                figsize = (1, 1)
+                dpi     = self.size[0]
+            elif self.size[0] > self.size[1]:
+                figsize = (self.size[0]/self.size[1], 1)
+                dpi     = self.size[1]
+            else:
+                figsize = (self.size[0], self.size[1]/self.size[0])
+                dpi     = self.size[0]
+            
+            plt.figure(figsize=[i*1.3 for i in figsize], dpi=dpi, frameon=False)
+            plt.axes(projection=ccrs.AzimuthalEquidistant(central_latitude=lat, central_longitude=self.long[index]))
+            plt.imshow(self.data, transform=ccrs.PlateCarree())
 
             # Use the indices rather than the values to name the files
-            plt.imsave(opath.join(self.directory, self.name + '_%d,%d' %(index, pos) + '.jpg'),
-                       np.asarray(np.moveaxis(projData, 0, -1), dtype='uint8'), origin='lower', format='jpg')
+            plt.savefig(opath.join(self.directory, self.name + '_%d,%d' %(index, pos) + '.jpg'), format='jpg',
+                        transparent=True, bbox_inches='tight', pad_inches=0)
             
          if not self.ok:
              break
@@ -170,7 +165,7 @@ class Projection(Thread):
 
 class RunProjection(Thread):
 
-    def __init__(self, data, directory, name, step, numThreads, initPos=None, allLong=None, allLat=None, size=(720, 720)):
+    def __init__(self, data, directory, name, step, numThreads, initPos=None, allLong=None, allLat=None, size=(1080, 1080)):
         '''
         Perform the projections given the step, bounds and number of threads.
         
@@ -185,7 +180,7 @@ class RunProjection(Thread):
            numThreads : int
               number of threads to use for the computation
            step : float/int
-              step used when computed a new image with different coordinates. Units is assumed identical as latitude and longitude.
+              step used when computed a new image with different coordinates. Unit is assumed identical as latitude and longitude.
         
         Optional parameters
         -------------------
@@ -195,8 +190,6 @@ class RunProjection(Thread):
               the longitudes where to compute the projection. If not given, the array is computed. 
            initPos : (int, int)
               longitude and latitude initial position written in the YAML file. Must be given in grid units. If None, first longitude lower bound and latitude upper bound are used.
-           size : (int, int)
-              size of the output images in x and y. Default is 720 pixels in both directions. 
         '''
         
         Thread.__init__(self)
@@ -212,6 +205,7 @@ class RunProjection(Thread):
         
         if not isinstance(numThreads, int):
            raise TypeError('Number of threads must be an int.')
+           
         if numThreads < 1:
            raise ValueError('Given number of threads is %s but accepted value must be >= 1.' %numThreads)
            
@@ -223,11 +217,7 @@ class RunProjection(Thread):
         
         self.step          = step
         self.data          = data
-        
-        # Shape of the image, longitude and latitude values for each pixel
-        self.shp           = np.shape(data)
-        self.longList      = np.linspace(-180, 180, self.shp[1])
-        self.latList       = np.linspace(-90,  90,  self.shp[0])
+        self.size          = size
         
         # Arrays of latitude and longitude where to compute the projections
         if allLong is None:
@@ -266,10 +256,11 @@ class RunProjection(Thread):
         # Launch the run method for each thread to improve speed 
         print('Setting up the projection dictionnary...')
         for i in range(self.numThreads):
-           self.threads.append(Projection(self.data, self.longList, self.latList, self.allLong, self.long[i], self.allLat, directory=self.directory, name=self.name))
+           self.threads.append(Projection(self.data, self.allLong, self.long[i], self.allLat, directory=self.directory, name=self.name, size=self.size))
+           self.threads[i].setDaemon(True)
            self.threads[i].start()
         
-         # Join threads once job is done
+        # Join threads once job is done
         for i in range(self.numThreads):
            self.threads[i].join()
            print('Thread %d done.' %i)
