@@ -376,7 +376,7 @@ class ConfigWindow(tk.Toplevel):
             self.xres         = xres
             self.yres         = yres
             self.resEntry.removeError()
-            self.error['res'] = True
+            self.error['res'] = False
         
         self.checkRun()
         return
@@ -717,7 +717,6 @@ class ConfigWindow(tk.Toplevel):
     def checkRun(self, *args, **kwargs):
         '''Check whether the projection can be run or not.'''
         
-        print('hey2')
         if not self.runState:            
             if any(self.error.values()):
                 self.runButton.configure(state=tk.DISABLED)
@@ -728,7 +727,6 @@ class ConfigWindow(tk.Toplevel):
                 self.runButton.bind(  '<Enter>', lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='black'))
                 self.runButton.bind(  '<Leave>', lambda *args, **kwargs: self.parent.iconDict['RUN'].configure(foreground='white'))
         else:
-            print("jey3")
             self.runButton.bind(      '<Enter>', lambda *args, **kwargs: self.parent.iconDict['CHECK'].configure(foreground='black'))
             self.runButton.bind(      '<Leave>', lambda *args, **kwargs: self.parent.iconDict['CHECK'].configure(foreground='firebrick1'))
         return
@@ -795,7 +793,6 @@ class ConfigWindow(tk.Toplevel):
             self.config(cursor='watch')
             self.runState = True
             self.runButton.config(cursor='arrow', image=self.main.iconDict['CHECK'])
-            print('hey')
             self.checkRun()
             
             # Run thread
@@ -809,4 +806,3 @@ class ConfigWindow(tk.Toplevel):
             self.runButton.config(cursor='arrow', image=self.main.iconDict['RUN'])
             self.checkRun()
         return
-
