@@ -1,5 +1,7 @@
 # Sphere
 
+**WARNING: This software is not maintained any more.**
+
 Sphere is a small GUI aimed at easily projecting rectangular images of planetary surfaces into azimuthal equidistant images and manipulating them in a simple interface. 
 
 Ultimately, both projection and image manipulation shall be done through the same interface such that even non-specialist can easily perform it.
